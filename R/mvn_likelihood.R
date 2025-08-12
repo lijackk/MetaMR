@@ -116,12 +116,14 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
   return(sum(loglik_variants))
 }
 
-#' Optimize log-likelihood for summary statistics
+#' Optimize log-likelihood of simple model for given summary statistics
 #'
-#' @param sumstat_beta_list a list of vectors of GWAS effect size estimates with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of many variants.
+#' For a list of summary statistics (effect size estimates and standard errors) for n variants across K + 1 studies (outcome from target population, exposure from target population, exposures from K-1 auxiliary populations), we use the optim() function to minimize the negative log-likelihood under the simple hierarchical model of MetaMR over the exposure-outcome causal effect (gamma), as well as the variances of mu and delta (tau_mu and tau_delta).
+#'
+#' @param sumstat_beta_list a list of vectors of GWAS effect size estimates, each with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of N variants.
 #' @param sumstat_se_list a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list
 #' @param is_overlap a boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.
-#' @param r_mat_list a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap
+#' @param r_mat_list a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.
 #'
 #' @returns the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta
 #' @export

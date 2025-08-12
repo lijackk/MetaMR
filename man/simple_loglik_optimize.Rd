@@ -2,7 +2,7 @@
 % Please edit documentation in R/mvn_likelihood.R
 \name{simple_loglik_optimize}
 \alias{simple_loglik_optimize}
-\title{Optimize log-likelihood for summary statistics}
+\title{Optimize log-likelihood of simple model for given summary statistics}
 \usage{
 simple_loglik_optimize(
   sumstat_beta_list,
@@ -12,19 +12,19 @@ simple_loglik_optimize(
 )
 }
 \arguments{
-\item{sumstat_beta_list}{a list of vectors of GWAS effect size estimates with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of many variants.}
+\item{sumstat_beta_list}{a list of vectors of GWAS effect size estimates, each with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of N variants.}
 
 \item{sumstat_se_list}{a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list}
 
 \item{is_overlap}{a boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.}
 
-\item{r_mat_list}{a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap}
+\item{r_mat_list}{a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.}
 }
 \value{
 the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta
 }
 \description{
-Optimize log-likelihood for summary statistics
+For a list of summary statistics (effect size estimates and standard errors) for n variants across K + 1 studies (outcome from target population, exposure from target population, exposures from K-1 auxiliary populations), we use the optim() function to minimize the negative log-likelihood under the simple hierarchical model of MetaMR over the exposure-outcome causal effect (gamma), as well as the variances of mu and delta (tau_mu and tau_delta).
 }
 \examples{
 SE_list <- rep(list(c(0.2, 0.1, 0.05, 0.05)), 50)
@@ -32,6 +32,6 @@ r_mat <- diag(4)
 r_mat[1,2] <- 0.2
 r_mat[2,1] <- 0.2
 observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
-sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) return(x))
+sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50))
 }
