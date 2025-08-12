@@ -2,7 +2,7 @@
 % Please edit documentation in R/mvn_likelihood.R
 \name{simple_loglik_full}
 \alias{simple_loglik_full}
-\title{The marginal log-likelihood for the summary statistics of a list of variants under our meta-analysis model, assuming no selection, and i.i.d. normal mu and delta}
+\title{Log-likelihood function under simple model (multi-variant)}
 \usage{
 simple_loglik_full(
   sumstat_beta_list,
