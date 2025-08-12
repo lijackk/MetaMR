@@ -21,7 +21,7 @@ simple_loglik_single(
 
 \item{gamma}{The exposure-outcome causal effect parameter}
 
-\item{is_overlap}{whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.}
+\item{is_overlap}{a boolean whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.}
 
 \item{r_mat}{a matrix of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap
 .}
