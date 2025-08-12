@@ -49,8 +49,8 @@ simplemodel_sim <- function(gamma, tau_mu, tau_delta, vars, pops, SE_list, r_mat
   }
 
   # Simulating expectations for each variant
-  mu_vector <- rnorm(n = vars, mean = 0, sd = sqrt(tau_mu))
-  delta_matrix <- matrix(rnorm(n = vars*pops, mean = 0, sd = sqrt(tau_delta)),
+  mu_vector <- stats::rnorm(n = vars, mean = 0, sd = sqrt(tau_mu))
+  delta_matrix <- matrix(stats::rnorm(n = vars*pops, mean = 0, sd = sqrt(tau_delta)),
                          nrow = vars, ncol = pops)
   mean_matrix_exposure <- matrix(rep(mu_vector, pops), nrow = vars, ncol = pops) + delta_matrix
   mean_vector_outcome <- matrix(gamma*(mean_matrix_exposure[,1]), nrow = vars)
