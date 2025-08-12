@@ -172,5 +172,6 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
                              r_mat_list = r_mat_list,
                              tau_mu = params[2],
                              tau_delta = params[3])
-        })
+        },
+        method = "L-BFGS-B", lower = c(-Inf, 1e-16, 1e-16), upper = c(Inf, Inf, Inf))
 }
