@@ -90,8 +90,6 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
     stop("If you assume sample overlap, please provide residual correlation matrices in r_mat_list!")
   }
 
-
-  print("Checks passed, begin log-likelihood calculation and summation")
   n <- length(sumstat_beta_list)
   k <- unique_k_counts - 1
 

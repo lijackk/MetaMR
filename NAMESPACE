@@ -2,3 +2,4 @@
 
 export(simple_loglik_full)
 export(simple_loglik_single)
+export(simplemodel_sim)
