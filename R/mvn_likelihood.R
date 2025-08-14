@@ -173,7 +173,8 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
                              tau_mu = params[2],
                              tau_delta = params[3])
         },
-        method = "L-BFGS-B", lower = c(-Inf, 1e-16, 1e-16), upper = c(Inf, Inf, Inf))
+        method = "L-BFGS-B", lower = c(-Inf, 1e-16, 1e-16), upper = c(Inf, Inf, Inf),
+        hessian = TRUE)
 }
 
 
@@ -233,5 +234,6 @@ simple_loglik_optimize_null <- function(sumstat_beta_list, sumstat_se_list, is_o
                                      tau_mu = params[1],
                                      tau_delta = params[2])
                },
-               method = "L-BFGS-B", lower = c(1e-16, 1e-16), upper = c(Inf, Inf))
+               method = "L-BFGS-B", lower = c(1e-16, 1e-16), upper = c(Inf, Inf),
+               hessian = TRUE)
 }
