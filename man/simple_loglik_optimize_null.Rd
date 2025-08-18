@@ -2,7 +2,7 @@
 % Please edit documentation in R/mvn_likelihood.R
 \name{simple_loglik_optimize_null}
 \alias{simple_loglik_optimize_null}
-\title{Optimize log-likelihood of simple model for given summary statistics under the null hypothesis}
+\title{Optimize log-likelihood of simple model for given summary statistics under the null hypothesis (DEPRECATED)}
 \usage{
 simple_loglik_optimize_null(
   sumstat_beta_list,
@@ -24,7 +24,7 @@ simple_loglik_optimize_null(
 the output from optim(), detailing the optimized values for tau_mu and tau_delta, information about convergence, and the negative log-likelihood
 }
 \description{
-Similar to simple_loglik_optimize, but now \eqn{\gamma} is constrained to be exactly zero. Used for likelihood ratio testing.
+Similar to simple_loglik_optimize, but now \eqn{\gamma} is constrained to be exactly zero. Used for likelihood ratio testing. NO LONGER USED DUE TO A MORE FLEXIBLE BASE OPTIMIZATION FUNCTION.
 }
 \examples{
 SE_list <- rep(list(c(0.2, 0.1, 0.05, 0.05)), 50)

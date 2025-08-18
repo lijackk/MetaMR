@@ -47,13 +47,19 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
   MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
                                              sumstat_se_list = sumstat_se_list,
                                              is_overlap = is_overlap,
-                                             r_mat_list = r_mat_list)
+                                             r_mat_list = r_mat_list,
+                                             is.fixed = c(FALSE, FALSE, FALSE),
+                                             fix.params = c(NA, NA, NA),
+                                             tau_mu_log = TRUE, tau_delta_log = TRUE)
 
   #Optimizing the constrained likelihood under the null hypothesis
-  MetaMR_null_loglik <- simple_loglik_optimize_null(sumstat_beta_list = sumstat_beta_list,
+  MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
                                                sumstat_se_list = sumstat_se_list,
                                                is_overlap = is_overlap,
-                                               r_mat_list = r_mat_list)
+                                               r_mat_list = r_mat_list,
+                                               is.fixed = c(TRUE, FALSE, FALSE),
+                                               fix.params = c(0, NA, NA),
+                                               tau_mu_log = TRUE, tau_delta_log = TRUE)
 
   #Obtaining the variance of each of the estimated parameters using the information matrix
     #Information matrix = negative hessian of log-likelihood at MLE

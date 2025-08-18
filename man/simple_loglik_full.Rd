@@ -11,7 +11,9 @@ simple_loglik_full(
   is_overlap = FALSE,
   r_mat_list = NA,
   tau_mu,
-  tau_delta
+  tau_delta,
+  tau_mu_log = FALSE,
+  tau_delta_log = FALSE
 )
 }
 \arguments{
@@ -25,9 +27,13 @@ simple_loglik_full(
 
 \item{r_mat_list}{a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap}
 
-\item{tau_mu}{The variance of the normal distribution underlying mu}
+\item{tau_mu}{The variance of the normal distribution underlying mu. It should be log-transformed unless set to be exactly zero.}
 
-\item{tau_delta}{The variance of the normal distributions underlying delta}
+\item{tau_delta}{The variance of the normal distributions underlying delta. It should be log-transformed unless set to be exactly zero.}
+
+\item{tau_mu_log}{Whether tau_mu represents its log-transformed value or not.}
+
+\item{tau_delta_log}{Whether tau_delta represents its log-transformed value or not.}
 }
 \value{
 A log-likelihood for the summary statistics of a set of variants given some parameters gamma, mu, tau
@@ -39,9 +45,17 @@ The marginal log-likelihood for the summary statistics of a list of variants und
 simple_loglik_full(sumstat_beta_list = list(c(0,0,0), c(0,0,0), c(0,0,0)),
                      sumstat_se_list = list(c(1,1,1), c(1,1,1), c(1,1,1)),
                      gamma = 0, tau_mu = 1, tau_delta = 1)
+simple_loglik_full(sumstat_beta_list = list(c(0,0,0), c(0,0,0), c(0,0,0)),
+                     sumstat_se_list = list(c(1,1,1), c(1,1,1), c(1,1,1)),
+                     gamma = 0, tau_mu = 1, tau_delta = 0)
 simple_loglik_full(sumstat_beta_list = list(c(0.4, 0.6, 0.3), c(0.7,1,0.2), c(0.3,0.36,0.3)),
                      sumstat_se_list = list(c(0.1, 0.1, 0.05), c(0.2, 0.2, 0.1), c(0.1, 0.1, 0.05)),
                      is_overlap = TRUE,
                      r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3)), 3),
                      gamma = 0.8, tau_mu = 1, tau_delta = 1)
+simple_loglik_full(sumstat_beta_list = list(c(0.4, 0.6, 0.3), c(0.7,1,0.2), c(0.3,0.36,0.3)),
+                     sumstat_se_list = list(c(0.1, 0.1, 0.05), c(0.2, 0.2, 0.1), c(0.1, 0.1, 0.05)),
+                     is_overlap = TRUE,
+                     r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3)), 3),
+                     gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
 }

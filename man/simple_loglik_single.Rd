@@ -11,7 +11,9 @@ simple_loglik_single(
   is_overlap = FALSE,
   r_mat = NA,
   tau_mu,
-  tau_delta
+  tau_delta,
+  tau_mu_log = FALSE,
+  tau_delta_log = FALSE
 )
 }
 \arguments{
@@ -23,12 +25,15 @@ simple_loglik_single(
 
 \item{is_overlap}{a boolean whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.}
 
-\item{r_mat}{a matrix of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap
-.}
+\item{r_mat}{a matrix of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.}
 
-\item{tau_mu}{The variance of the normal distribution underlying mu}
+\item{tau_mu}{The variance of the normal distribution underlying mu. It should be log-transformed unless set to be exactly zero.}
 
-\item{tau_delta}{The variance of the normal distributions underlying delta}
+\item{tau_delta}{The variance of the normal distributions underlying delta. It should be log-transformed unless set to be exactly zero.}
+
+\item{tau_mu_log}{Whether tau_mu represents its log-transformed value or not}
+
+\item{tau_delta_log}{Whether tau_delta represents its log-transformed value or not}
 }
 \value{
 A log-likelihood for the summary statistics of a single variant given some parameters gamma, mu, tau
@@ -39,8 +44,14 @@ The marginal log-likelihood for the summary statistics of a single variant under
 \examples{
 simple_loglik_single(sumstat_beta = c(0,0,0), sumstat_se = c(1,1,1),
                      gamma = 0, tau_mu = 1, tau_delta = 1)
+simple_loglik_single(sumstat_beta = c(0,0,0), sumstat_se = c(1,1,1),
+                     gamma = 0, tau_mu = 1, tau_delta = 0)
 simple_loglik_single(sumstat_beta = c(0.4, 0.6, 0.3), sumstat_se = c(0.1, 0.1, 0.05),
                      is_overlap = TRUE,
                      r_mat = matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3),
                      gamma = 0.8, tau_mu = 1, tau_delta = 1)
+simple_loglik_single(sumstat_beta = c(0.4, 0.6, 0.3), sumstat_se = c(0.1, 0.1, 0.05),
+                     is_overlap = TRUE,
+                     r_mat = matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3),
+                     gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
 }

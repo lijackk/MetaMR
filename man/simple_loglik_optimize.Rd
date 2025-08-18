@@ -8,7 +8,11 @@ simple_loglik_optimize(
   sumstat_beta_list,
   sumstat_se_list,
   is_overlap = FALSE,
-  r_mat_list = NA
+  r_mat_list = NA,
+  is.fixed = c(FALSE, FALSE, FALSE),
+  fix.params = c(NA, NA, NA),
+  tau_mu_log = FALSE,
+  tau_delta_log = FALSE
 )
 }
 \arguments{
@@ -19,12 +23,20 @@ simple_loglik_optimize(
 \item{is_overlap}{a boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.}
 
 \item{r_mat_list}{a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.}
+
+\item{is.fixed}{which parameters of interested should be fixed during optimization. Follows order (gamma, tau_mu, tau_delta).}
+
+\item{fix.params}{if a parameter is set as fixed in is.fixed, what it should be. Follows order (gamma, tau_mu, tau_delta). Our function will check to make sure is.fixed and fix.params are compatible with each other.}
+
+\item{tau_mu_log}{whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.}
+
+\item{tau_delta_log}{whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.}
 }
 \value{
 the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood
 }
 \description{
-For a list of summary statistics (effect size estimates and standard errors) for n variants across K + 1 studies (outcome from target population, exposure from target population, exposures from K-1 auxiliary populations), we use the optim() function to minimize the negative log-likelihood under the simple hierarchical model of MetaMR over the exposure-outcome causal effect (gamma), as well as the variances of mu and delta (tau_mu and tau_delta).
+For a list of summary statistics (effect size estimates and standard errors) for n variants across K + 1 studies (outcome from target population, exposure from target population, exposures from K-1 auxiliary populations), we use the optim() function to minimize the negative log-likelihood under the simple hierarchical model of MetaMR over the exposure-outcome causal effect (gamma), as well as the variances of mu and delta (tau_mu and tau_delta). We also allow for subsets of these parameters to be held constant.
 }
 \examples{
 SE_list <- rep(list(c(0.2, 0.1, 0.05, 0.05)), 50)
@@ -33,5 +45,10 @@ r_mat[1,2] <- 0.2
 r_mat[2,1] <- 0.2
 observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50))
+simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE)
+
+observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
+sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
+simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE)
+
 }
