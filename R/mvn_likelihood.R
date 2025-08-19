@@ -155,6 +155,7 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' @param fix.params if a parameter is set as fixed in is.fixed, what it should be. Follows order (gamma, tau_mu, tau_delta). Our function will check to make sure is.fixed and fix.params are compatible with each other.
 #' @param tau_mu_log whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.
 #' @param tau_delta_log whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.
+#' @param optim_method what method to use for the optim function (Nelder-Mead (default) or L-BFGS-B)
 #'
 #' @returns the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood
 #' @export
@@ -166,13 +167,14 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' r_mat[2,1] <- 0.2
 #' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE)
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead")
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "L-BFGS-B")
 #'
 #' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE)
-#'
-simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), tau_mu_log = FALSE, tau_delta_log = FALSE) {
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "Nelder-Mead")
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "L-BFGS-B")
+simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B")) {
 
   #Whether is.fixed and fix.params are compatible
     #If is.fixed[i] is FALSE, is.na(fix.params)[i] should be TRUE
@@ -224,8 +226,17 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
                                tau_delta_log = tau_delta_log))
   }
 
-  #minimize the negative log-likelihood
-  stats::optim(par = init.params,
-        fn = optim_fn,
-        hessian = TRUE)
+  #minimize the negative log-likelihood using either unbounded Nelder-Mead or bounded L-BFGS-B
+  if (optim_method == "L-BFGS-B") { #L-BFGS-B needs bounds
+    stats::optim(par = init.params,
+                 fn = optim_fn,
+                 method = optim_method,
+                 lower = c(-Inf, -16, -16)[!is.fixed], upper = c(Inf, 10, 10)[!is.fixed],
+                 hessian = TRUE)
+  } else { #Nelder-Mead is unbounded
+    stats::optim(par = init.params,
+                 fn = optim_fn,
+                 method = optim_method,
+                 hessian = TRUE)
+  }
 }

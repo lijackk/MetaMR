@@ -1,10 +1,12 @@
 #' MetaMR using a simple hierarchical model (NOT YET COMPLETE)
 #'
 #' This function estimates an exposure-outcome causal effect, \eqn{\gamma}, in the target population, using exposure and outcome summary statistics in the target population as well as exposure summary statistics from \eqn{K - 1} auxiliary populations using a simple hierarchical model. This function inputs a list of GWAS effect size estimates across all \eqn{K+1} studies for a set of \eqn{n} variants selected as instrumental variables, a list of standard errors for these variants, and a user-specified residual correlation matrix reflecting sample overlap between studies, then maximizes a likelihood that models exposure summary statistics for each variant \eqn{j} under a random effects meta-analysis framework based on central values \eqn{\mu_j} and population-specific deviations \eqn{\delta_{kj}}, where \eqn{\mu_j} are i.i.d. normal with variance \eqn{\tau_{\mu}} and \eqn{\delta_{kj}} are also i.i.d. normal with variance \eqn{\tau_{\delta}}. Note that this function does NOT yet incorporate variant selection, potential horizontal pleiotropy in the outcome, or alternative distributions for \eqn{\mu} and \eqn{\delta} values.
+#'
 #' @param sumstat_beta_list a list of vectors of GWAS effect size estimates, each with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of N variants.
 #' @param sumstat_se_list a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list
-#' @param is_overlap  boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.
+#' @param is_overlap A boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.
 #' @param r_mat_list a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.
+#' @param check_hessian whether to check the validity of the Hessian matrix output by optim. May make the function slower by forcing a second run-through of optim, but addresses potential singularities in the Hessian matrix when using N-M for optimization.
 #'
 #' @returns a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)
 #' @export
@@ -18,7 +20,7 @@
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 #' MetaMR_simplemodel(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50))
 #'
-MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA) {
+MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, check_hessian = TRUE) {
   #The usual battery of checks before we proceed
   if (length(sumstat_beta_list) != length(sumstat_se_list)) {
     stop("Summary statistic effect size estimates and standard errors imply differing numbers of variants!")
@@ -46,8 +48,8 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
   #if K = 1, then only one population exists and tau_delta is not identifiable.
 
   if (k == 1) {
-    print("No auxiliary populations present.")
-    #In this situation, we force tau to equal zero.
+    print("No auxiliary populations present, tau_delta fixed at zero.")
+    #In this situation, we force tau_delta to equal zero.
 
     #Optimizing the full likelihood
     MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
@@ -56,7 +58,8 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                r_mat_list = r_mat_list,
                                                is.fixed = c(FALSE, FALSE, TRUE),
                                                fix.params = c(NA, NA, 0),
-                                               tau_mu_log = TRUE, tau_delta_log = FALSE)
+                                               tau_mu_log = TRUE, tau_delta_log = FALSE,
+                                               optim_method = "Nelder-Mead")
 
     #Optimizing the constrained likelihood under the null hypothesis
     MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
@@ -65,7 +68,8 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  r_mat_list = r_mat_list,
                                                  is.fixed = c(TRUE, FALSE, TRUE),
                                                  fix.params = c(0, NA, 0),
-                                                 tau_mu_log = TRUE, tau_delta_log = FALSE)
+                                                 tau_mu_log = TRUE, tau_delta_log = FALSE,
+                                                 optim_method = "Nelder-Mead")
 
   } else {
     #Optimizing the full likelihood
@@ -75,7 +79,8 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                r_mat_list = r_mat_list,
                                                is.fixed = c(FALSE, FALSE, FALSE),
                                                fix.params = c(NA, NA, NA),
-                                               tau_mu_log = TRUE, tau_delta_log = TRUE)
+                                               tau_mu_log = TRUE, tau_delta_log = TRUE,
+                                               optim_method = "Nelder-Mead")
 
     #Optimizing the constrained likelihood under the null hypothesis
     MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
@@ -84,7 +89,34 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  r_mat_list = r_mat_list,
                                                  is.fixed = c(TRUE, FALSE, FALSE),
                                                  fix.params = c(0, NA, NA),
-                                                 tau_mu_log = TRUE, tau_delta_log = TRUE)
+                                                 tau_mu_log = TRUE, tau_delta_log = TRUE,
+                                                 optim_method = "Nelder-Mead")
+  }
+
+  if (check_hessian) { #checks whether Hessian matrix of N-M is singular
+    if (qr(MetaMR_point_est$hessian)$rank < dim(MetaMR_point_est$hessian)[1]) {
+      print("Hessian matrix is singular, switching to constrained optimization using L-BFGS-B!")
+
+      #Optimizing the full likelihood
+      MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                                 sumstat_se_list = sumstat_se_list,
+                                                 is_overlap = is_overlap,
+                                                 r_mat_list = r_mat_list,
+                                                 is.fixed = c(FALSE, FALSE, FALSE),
+                                                 fix.params = c(NA, NA, NA),
+                                                 tau_mu_log = TRUE, tau_delta_log = TRUE,
+                                                 optim_method = "L-BFGS-B")
+
+      #Optimizing the constrained likelihood under the null hypothesis
+      MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                                   sumstat_se_list = sumstat_se_list,
+                                                   is_overlap = is_overlap,
+                                                   r_mat_list = r_mat_list,
+                                                   is.fixed = c(TRUE, FALSE, FALSE),
+                                                   fix.params = c(0, NA, NA),
+                                                   tau_mu_log = TRUE, tau_delta_log = TRUE,
+                                                   optim_method = "L-BFGS-B")
+    }
   }
 
   #Obtaining the variance of each of the estimated parameters using the information matrix

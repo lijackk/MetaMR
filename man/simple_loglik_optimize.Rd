@@ -12,7 +12,8 @@ simple_loglik_optimize(
   is.fixed = c(FALSE, FALSE, FALSE),
   fix.params = c(NA, NA, NA),
   tau_mu_log = FALSE,
-  tau_delta_log = FALSE
+  tau_delta_log = FALSE,
+  optim_method = c("Nelder-Mead", "L-BFGS-B")
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ simple_loglik_optimize(
 \item{tau_mu_log}{whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.}
 
 \item{tau_delta_log}{whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.}
+
+\item{optim_method}{what method to use for the optim function (Nelder-Mead (default) or L-BFGS-B)}
 }
 \value{
 the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood
@@ -45,10 +48,11 @@ r_mat[1,2] <- 0.2
 r_mat[2,1] <- 0.2
 observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE)
+simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead")
+simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "L-BFGS-B")
 
 observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE)
-
+simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "Nelder-Mead")
+simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "L-BFGS-B")
 }

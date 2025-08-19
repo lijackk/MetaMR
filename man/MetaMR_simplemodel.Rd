@@ -8,7 +8,8 @@ MetaMR_simplemodel(
   sumstat_beta_list,
   sumstat_se_list,
   is_overlap = FALSE,
-  r_mat_list = NA
+  r_mat_list = NA,
+  check_hessian = TRUE
 )
 }
 \arguments{
@@ -16,9 +17,11 @@ MetaMR_simplemodel(
 
 \item{sumstat_se_list}{a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list}
 
-\item{is_overlap}{boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.}
+\item{is_overlap}{A boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.}
 
 \item{r_mat_list}{a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.}
+
+\item{check_hessian}{whether to check the validity of the Hessian matrix output by optim. May make the function slower by forcing a second run-through of optim, but addresses potential singularities in the Hessian matrix when using N-M for optimization.}
 }
 \value{
 a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)
