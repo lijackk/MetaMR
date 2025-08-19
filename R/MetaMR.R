@@ -43,23 +43,49 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
     r_mat_list <- rep(diag_mat, n)
   }
 
-  #Optimizing the full likelihood
-  MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
-                                             sumstat_se_list = sumstat_se_list,
-                                             is_overlap = is_overlap,
-                                             r_mat_list = r_mat_list,
-                                             is.fixed = c(FALSE, FALSE, FALSE),
-                                             fix.params = c(NA, NA, NA),
-                                             tau_mu_log = TRUE, tau_delta_log = TRUE)
+  #if K = 1, then only one population exists and tau_delta is not identifiable.
 
-  #Optimizing the constrained likelihood under the null hypothesis
-  MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+  if (k == 1) {
+    print("No auxiliary populations present.")
+    #In this situation, we force tau to equal zero.
+
+    #Optimizing the full likelihood
+    MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
                                                sumstat_se_list = sumstat_se_list,
                                                is_overlap = is_overlap,
                                                r_mat_list = r_mat_list,
-                                               is.fixed = c(TRUE, FALSE, FALSE),
-                                               fix.params = c(0, NA, NA),
+                                               is.fixed = c(FALSE, FALSE, TRUE),
+                                               fix.params = c(NA, NA, 0),
+                                               tau_mu_log = TRUE, tau_delta_log = FALSE)
+
+    #Optimizing the constrained likelihood under the null hypothesis
+    MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                                 sumstat_se_list = sumstat_se_list,
+                                                 is_overlap = is_overlap,
+                                                 r_mat_list = r_mat_list,
+                                                 is.fixed = c(TRUE, FALSE, TRUE),
+                                                 fix.params = c(0, NA, 0),
+                                                 tau_mu_log = TRUE, tau_delta_log = FALSE)
+
+  } else {
+    #Optimizing the full likelihood
+    MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                               sumstat_se_list = sumstat_se_list,
+                                               is_overlap = is_overlap,
+                                               r_mat_list = r_mat_list,
+                                               is.fixed = c(FALSE, FALSE, FALSE),
+                                               fix.params = c(NA, NA, NA),
                                                tau_mu_log = TRUE, tau_delta_log = TRUE)
+
+    #Optimizing the constrained likelihood under the null hypothesis
+    MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                                 sumstat_se_list = sumstat_se_list,
+                                                 is_overlap = is_overlap,
+                                                 r_mat_list = r_mat_list,
+                                                 is.fixed = c(TRUE, FALSE, FALSE),
+                                                 fix.params = c(0, NA, NA),
+                                                 tau_mu_log = TRUE, tau_delta_log = TRUE)
+  }
 
   #Obtaining the variance of each of the estimated parameters using the information matrix
     #Information matrix = negative hessian of log-likelihood at MLE
