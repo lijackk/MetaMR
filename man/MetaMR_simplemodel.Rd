@@ -9,7 +9,8 @@ MetaMR_simplemodel(
   sumstat_se_list,
   is_overlap = FALSE,
   r_mat_list = NA,
-  check_hessian = TRUE
+  check_zeros = TRUE,
+  zero_thresh = 1e-08
 )
 }
 \arguments{
@@ -21,7 +22,9 @@ MetaMR_simplemodel(
 
 \item{r_mat_list}{a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.}
 
-\item{check_hessian}{whether to check the validity of the Hessian matrix output by optim. May make the function slower by forcing a second run-through of optim, but addresses potential singularities in the Hessian matrix when using N-M for optimization.}
+\item{check_zeros}{whether to check if either variance parameter (tau_mu) or (tau_delta) was estimated to be exactly zero, which can destabilize the algorithm. If either estimated variance parameter falls below a certain threshold, we rerun optimization fixing that component at exactly zero.}
+
+\item{zero_thresh}{the threshold specified in check_zeros. Is 1e-8 by default.}
 }
 \value{
 a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)

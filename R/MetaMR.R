@@ -6,7 +6,8 @@
 #' @param sumstat_se_list a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list
 #' @param is_overlap A boolean describing whether there is any sample overlap between any of the K+1 studies used for summary statistics. Usually this is true due to overlap between the outcome and exposure GWAS in the target population, but we assume no overlap by default.
 #' @param r_mat_list a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.
-#' @param check_hessian whether to check the validity of the Hessian matrix output by optim. May make the function slower by forcing a second run-through of optim, but addresses potential singularities in the Hessian matrix when using N-M for optimization.
+#' @param check_zeros whether to check if either variance parameter (tau_mu) or (tau_delta) was estimated to be exactly zero, which can destabilize the algorithm. If either estimated variance parameter falls below a certain threshold, we rerun optimization fixing that component at exactly zero.
+#' @param zero_thresh the threshold specified in check_zeros. Is 1e-8 by default.
 #'
 #' @returns a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)
 #' @export
@@ -20,7 +21,7 @@
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 #' MetaMR_simplemodel(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50))
 #'
-MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, check_hessian = TRUE) {
+MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, check_zeros = TRUE, zero_thresh = 1e-8) {
   #The usual battery of checks before we proceed
   if (length(sumstat_beta_list) != length(sumstat_se_list)) {
     stop("Summary statistic effect size estimates and standard errors imply differing numbers of variants!")
@@ -93,30 +94,64 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  optim_method = "Nelder-Mead")
   }
 
-  if (check_hessian) { #checks whether Hessian matrix of N-M is singular
-    if (qr(MetaMR_point_est$hessian)$rank < dim(MetaMR_point_est$hessian)[1]) {
-      print("Hessian matrix is singular, switching to constrained optimization using L-BFGS-B!")
+  if (check_zeros) { #checks whether any variance components were optimized to be nearly zero
+    if (k == 1) {
+      if (exp(MetaMR_point_est$par["tau_mu"]) < 1e-8) {
+        print("NOTE: tau_mu estimated below zero threshold, rerunning optimization")
 
-      #Optimizing the full likelihood
-      MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
-                                                 sumstat_se_list = sumstat_se_list,
-                                                 is_overlap = is_overlap,
-                                                 r_mat_list = r_mat_list,
-                                                 is.fixed = c(FALSE, FALSE, FALSE),
-                                                 fix.params = c(NA, NA, NA),
-                                                 tau_mu_log = TRUE, tau_delta_log = TRUE,
-                                                 optim_method = "L-BFGS-B")
-
-      #Optimizing the constrained likelihood under the null hypothesis
-      MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+        #Optimizing the full likelihood
+        MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
                                                    sumstat_se_list = sumstat_se_list,
                                                    is_overlap = is_overlap,
                                                    r_mat_list = r_mat_list,
-                                                   is.fixed = c(TRUE, FALSE, FALSE),
-                                                   fix.params = c(0, NA, NA),
-                                                   tau_mu_log = TRUE, tau_delta_log = TRUE,
-                                                   optim_method = "L-BFGS-B")
+                                                   is.fixed = c(FALSE, TRUE, TRUE),
+                                                   fix.params = c(NA, 0, 0),
+                                                   tau_mu_log = FALSE, tau_delta_log = FALSE,
+                                                   optim_method = "Nelder-Mead")
+
+        #if tau_mu is forced to zero, there is nothing to optimize
+        MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                                     sumstat_se_list = sumstat_se_list,
+                                                     is_overlap = is_overlap,
+                                                     r_mat_list = r_mat_list,
+                                                     is.fixed = c(TRUE, TRUE, TRUE),
+                                                     fix.params = c(0, 0, 0),
+                                                     tau_mu_log = FALSE, tau_delta_log = FALSE,
+                                                     optim_method = "Nelder-Mead")
+      }
+    } else {
+      if (exp(MetaMR_point_est$par["tau_mu"]) < 1e-8 || exp(MetaMR_point_est$par["tau_delta"]) < 1e-8) {
+        print("a variance component was estimated below zero threshold, rerunning optimization")
+
+        #Identify which of tau_mu or tau_delta are near zero, and set them to exactly zero
+        nearzero_indicator <- c(exp(MetaMR_point_est$par["tau_mu"]) < 1e-8,
+                                exp(MetaMR_point_est$par["tau_delta"]) < 1e-8)
+        nearzero_fixparams <- ifelse(nearzero_indicator, 0, NA)
+
+        #Optimizing the full likelihood with near-zero variance components
+        MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                                   sumstat_se_list = sumstat_se_list,
+                                                   is_overlap = is_overlap,
+                                                   r_mat_list = r_mat_list,
+                                                   is.fixed = c(FALSE, nearzero_indicator),
+                                                   fix.params = c(NA, nearzero_fixparams),
+                                                   tau_mu_log = !nearzero_indicator[1],
+                                                   tau_delta_log = !nearzero_indicator[2],
+                                                   optim_method = "Nelder-Mead")
+
+        #Optimizing the constrained likelihood under the null hypothesis with near-zero variance components
+        MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
+                                                     sumstat_se_list = sumstat_se_list,
+                                                     is_overlap = is_overlap,
+                                                     r_mat_list = r_mat_list,
+                                                     is.fixed = c(TRUE, nearzero_indicator),
+                                                     fix.params = c(0, nearzero_fixparams),
+                                                     tau_mu_log = !nearzero_indicator[1],
+                                                     tau_delta_log = !nearzero_indicator[2],
+                                                     optim_method = "Nelder-Mead")
+      }
     }
+
   }
 
   #Obtaining the variance of each of the estimated parameters using the information matrix
