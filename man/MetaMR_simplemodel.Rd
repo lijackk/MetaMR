@@ -10,7 +10,8 @@ MetaMR_simplemodel(
   is_overlap = FALSE,
   r_mat_list = NA,
   check_zeros = TRUE,
-  zero_thresh = 1e-08
+  zero_thresh = 1e-08,
+  set.init.params = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ MetaMR_simplemodel(
 \item{check_zeros}{whether to check if either variance parameter (tau_mu) or (tau_delta) was estimated to be exactly zero, which can destabilize the algorithm. If either estimated variance parameter falls below a certain threshold, we rerun optimization fixing that component at exactly zero.}
 
 \item{zero_thresh}{the threshold specified in check_zeros. Is 1e-8 by default.}
+
+\item{set.init.params}{Whether the optim() function should use the observed data to set initial parameters for optimization.}
 }
 \value{
 a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)

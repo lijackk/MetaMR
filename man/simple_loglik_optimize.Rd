@@ -11,6 +11,7 @@ simple_loglik_optimize(
   r_mat_list = NA,
   is.fixed = c(FALSE, FALSE, FALSE),
   fix.params = c(NA, NA, NA),
+  set.init.params = FALSE,
   tau_mu_log = FALSE,
   tau_delta_log = FALSE,
   optim_method = c("Nelder-Mead", "L-BFGS-B")
@@ -28,6 +29,8 @@ simple_loglik_optimize(
 \item{is.fixed}{which parameters of interested should be fixed during optimization. Follows order (gamma, tau_mu, tau_delta).}
 
 \item{fix.params}{if a parameter is set as fixed in is.fixed, what it should be. Follows order (gamma, tau_mu, tau_delta). Our function will check to make sure is.fixed and fix.params are compatible with each other.}
+
+\item{set.init.params}{Whether to manually set initial parameters from the initial data. If not, the initial parameters used are (0, 0, 0).}
 
 \item{tau_mu_log}{whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.}
 
@@ -49,6 +52,7 @@ r_mat[2,1] <- 0.2
 observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead")
+simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead", set.init.params = TRUE)
 simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "L-BFGS-B")
 
 observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)

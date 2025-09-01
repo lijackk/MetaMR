@@ -143,6 +143,64 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
   return(sum(loglik_variants))
 }
 
+#' Setting Initial Parameters for Better Optim()
+#'
+#' Numerical optimization methods may be sensitive to choice of initial parameters. This function uses a method of moments-like estimator to set more plausible initial parameters for optimization of the log-likelihood function over gamma, tau_mu and delta
+#'
+#' @param sumstat_beta_list a list of vectors of GWAS effect size estimates with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of many variants.
+#' @param tau_mu_log whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.
+#' @param tau_delta_log whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.
+#' @param sumstat_se_list a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list
+#'
+#' @returns A named vector of initial starting parameters for optim()
+#' @export
+#'
+#' @examples
+#' nvar <- 100
+#' gamma <- 0
+#' h2 <- 0.20
+#' persnp_h2 <- h2 / nvar
+#' tau_mu <- 0 #persnp_h2 to set tau_delta = 0, 0 to set tau_delta = 1
+#' tau_delta <- persnp_h2 - tau_mu
+#' N_k <- c(100000, 10000, 40000, 50000)
+#' sigma_Xk <- 1/sqrt(N_k)
+#' SE_list <- rep(list(sigma_Xk), nvar)
+#'
+#' i <- 1
+#' observed_data <- simplemodel_sim(gamma = gamma, tau_mu = tau_mu, tau_delta = tau_delta,
+#'                                  SE_list = SE_list, vars = nvar, pops = 3, seed = i)
+#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
+#' sumstat_beta_list2 <- lapply(sumstat_beta_list, function(x){return(x[1:4])})
+#' SE_list2 <- lapply(SE_list, function(x){return(x[1:4])})
+#' set_initial_params(sumstat_beta_list = sumstat_beta_list2, sumstat_se_list = SE_list2, tau_mu_log = TRUE, tau_delta_log = TRUE)
+set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = FALSE, tau_delta_log = FALSE) {
+
+  beta_matrix <- matrix(unlist(sumstat_beta_list), nrow = length(sumstat_beta_list), byrow = TRUE)
+  se_matrix <- matrix(unlist(sumstat_se_list), nrow = length(sumstat_beta_list), byrow = TRUE)
+
+  #gamma - simple IVW regression of outcome/exposure from the target population
+  init_gamma <- unname(stats::lm(beta_matrix[,1] ~ beta_matrix[,2] - 1, weights = 1/se_matrix[,1]^2)$coefficients)
+
+  #the covariance of exposure effect size estimates for each population
+  beta_x_vars <- stats::var(beta_matrix[,-1])
+
+  #tau_mu, estimated as the average off-diagonal value of this covariance matrix
+  init_tau_mu <- unname(mean(c(beta_x_vars[upper.tri(beta_x_vars, diag = FALSE)], beta_x_vars[lower.tri(beta_x_vars, diag = FALSE)])))
+  if (init_tau_mu <= 0) {init_tau_mu <- 1e-16} #occasionally may fall under zero
+
+
+  #when variants are standardized, tau_delta should be easy to estimate because SE is the same between variants
+  se_x_squared <- se_matrix[1,-1]^2
+  tau_delta_estimates <- unname(diag(beta_x_vars) - init_tau_mu - se_x_squared)
+
+  init_tau_delta <- mean(tau_delta_estimates)
+  if (init_tau_delta <= 0) {init_tau_delta <- 1e-16}
+
+  return(c(gamma = init_gamma,
+           tau_mu = ifelse(tau_mu_log, log(init_tau_mu), init_tau_mu),
+           tau_delta = ifelse(tau_delta_log, log(init_tau_delta), init_tau_delta)))
+}
+
 #' Optimize log-likelihood of simple model for given summary statistics
 #'
 #' For a list of summary statistics (effect size estimates and standard errors) for n variants across K + 1 studies (outcome from target population, exposure from target population, exposures from K-1 auxiliary populations), we use the optim() function to minimize the negative log-likelihood under the simple hierarchical model of MetaMR over the exposure-outcome causal effect (gamma), as well as the variances of mu and delta (tau_mu and tau_delta). We also allow for subsets of these parameters to be held constant.
@@ -156,6 +214,7 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' @param tau_mu_log whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.
 #' @param tau_delta_log whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.
 #' @param optim_method what method to use for the optim function (Nelder-Mead (default) or L-BFGS-B)
+#' @param set.init.params Whether to manually set initial parameters from the initial data. If not, the initial parameters used are (0, 0, 0).
 #'
 #' @returns the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood
 #' @export
@@ -168,13 +227,14 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead")
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead", set.init.params = TRUE)
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "L-BFGS-B")
 #'
 #' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "Nelder-Mead")
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "L-BFGS-B")
-simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B")) {
+simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), set.init.params = FALSE, tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B")) {
 
   #Whether is.fixed and fix.params are compatible
     #If is.fixed[i] is FALSE, is.na(fix.params)[i] should be TRUE
@@ -209,7 +269,13 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
   }
 
   #Setting up the function and parameters to optimize over
-  init.params <- c(gamma = 0, tau_mu = 0, tau_delta = 0)[!is.fixed]
+  if (set.init.params) {
+    init.params <- set_initial_params(sumstat_beta_list, sumstat_se_list, tau_mu_log, tau_delta_log)
+    # names(init.params) <- c("gamma", "tau_mu", "tau_delta")
+  } else {
+    init.params <- c(gamma = 0, tau_mu = 0, tau_delta = 0)
+  }
+  init.params <- init.params[!is.fixed]
   optim_fn <- function(params) {
     gamma <- ifelse("gamma" %in% names(init.params), params["gamma"], fix.params[1])
     tau_mu <- ifelse("tau_mu" %in% names(init.params), params["tau_mu"], fix.params[2])
