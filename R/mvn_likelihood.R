@@ -170,9 +170,14 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' observed_data <- simplemodel_sim(gamma = gamma, tau_mu = tau_mu, tau_delta = tau_delta,
 #'                                  SE_list = SE_list, vars = nvar, pops = 3, seed = i)
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
+#'
+#' sumstat_beta_list0 <- lapply(sumstat_beta_list, function(x){return(x[1:2])})
 #' sumstat_beta_list2 <- lapply(sumstat_beta_list, function(x){return(x[1:4])})
+#' SE_list0 <- lapply(SE_list, function(x){return(x[1:2])})
 #' SE_list2 <- lapply(SE_list, function(x){return(x[1:4])})
+#' set_initial_params(sumstat_beta_list = sumstat_beta_list0, sumstat_se_list = SE_list0, tau_mu_log = TRUE, tau_delta_log = TRUE)
 #' set_initial_params(sumstat_beta_list = sumstat_beta_list2, sumstat_se_list = SE_list2, tau_mu_log = TRUE, tau_delta_log = TRUE)
+#'
 set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = FALSE, tau_delta_log = FALSE) {
 
   beta_matrix <- matrix(unlist(sumstat_beta_list), nrow = length(sumstat_beta_list), byrow = TRUE)
@@ -183,6 +188,18 @@ set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = 
 
   #the covariance of exposure effect size estimates for each population
   beta_x_vars <- stats::var(beta_matrix[,-1])
+
+  if (length(beta_x_vars) == 1) { #tau_mu and tau_delta are not identifiable in the presence of no auxiliary populations.
+    print("no auxiliary populations, only estimating tau_mu.")
+
+    init_tau_mu <- beta_x_vars
+
+    init_tau_delta <- NA
+
+    return(c(gamma = init_gamma,
+             tau_mu = ifelse(tau_mu_log, log(init_tau_mu), init_tau_mu),
+             tau_delta = NA))
+  }
 
   #tau_mu, estimated as the average off-diagonal value of this covariance matrix
   init_tau_mu <- unname(mean(c(beta_x_vars[upper.tri(beta_x_vars, diag = FALSE)], beta_x_vars[lower.tri(beta_x_vars, diag = FALSE)])))
