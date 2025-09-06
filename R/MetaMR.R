@@ -101,7 +101,7 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
 
   if (check_zeros) { #checks whether any variance components were optimized to be nearly zero
     if (k == 1) {
-      if (exp(MetaMR_point_est$par["tau_mu"]) < 1e-8) {
+      if (exp(MetaMR_point_est$par["tau_mu"]) < zero_thresh) {
         print("NOTE: tau_mu estimated below zero threshold, rerunning optimization")
 
         #Optimizing the full likelihood
@@ -127,13 +127,13 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                      set.init.params = set.init.params)
       }
     } else {
-      if (exp(MetaMR_point_est$par["tau_mu"]) < 1e-8 || exp(MetaMR_point_est$par["tau_delta"]) < 1e-8) {
+      if (exp(MetaMR_point_est$par["tau_mu"]) < zero_thresh || exp(MetaMR_point_est$par["tau_delta"]) < zero_thresh) {
         print("a variance component was estimated below zero threshold, rerunning optimization")
 
         #Identify which of tau_mu or tau_delta are near zero, and set them to exactly zero
         #These vectors need to be unnamed or they won't function properly when setting initial parameters to true.
-        nearzero_indicator <- unname(c(exp(MetaMR_point_est$par["tau_mu"]) < 1e-8,
-                                exp(MetaMR_point_est$par["tau_delta"]) < 1e-8))
+        nearzero_indicator <- unname(c(exp(MetaMR_point_est$par["tau_mu"]) < zero_thresh,
+                                exp(MetaMR_point_est$par["tau_delta"]) < zero_thresh))
         nearzero_fixparams <- unname(ifelse(nearzero_indicator, 0, NA))
 
         #Optimizing the full likelihood with near-zero variance components
