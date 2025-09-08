@@ -150,6 +150,7 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' @param sumstat_beta_list a list of vectors of GWAS effect size estimates with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of many variants.
 #' @param tau_mu_log whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.
 #' @param tau_delta_log whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.
+#' @param use_tau_delta Whether to only estimate tau_mu or tau_delta when no auxiliary populations are provided.
 #' @param sumstat_se_list a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list
 #'
 #' @returns A named vector of initial starting parameters for optim()
@@ -178,7 +179,8 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' set_initial_params(sumstat_beta_list = sumstat_beta_list0, sumstat_se_list = SE_list0, tau_mu_log = TRUE, tau_delta_log = TRUE)
 #' set_initial_params(sumstat_beta_list = sumstat_beta_list2, sumstat_se_list = SE_list2, tau_mu_log = TRUE, tau_delta_log = TRUE)
 #'
-set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = FALSE, tau_delta_log = FALSE) {
+set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = FALSE, tau_delta_log = FALSE,
+                               use_tau_delta = FALSE) {
 
   beta_matrix <- matrix(unlist(sumstat_beta_list), nrow = length(sumstat_beta_list), byrow = TRUE)
   se_matrix <- matrix(unlist(sumstat_se_list), nrow = length(sumstat_beta_list), byrow = TRUE)
@@ -189,16 +191,18 @@ set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = 
   #the covariance of exposure effect size estimates for each population
   beta_x_vars <- stats::var(beta_matrix[,-1])
 
-  if (length(beta_x_vars) == 1) { #tau_mu and tau_delta are not identifiable in the presence of no auxiliary populations.
-    print("no auxiliary populations, only estimating tau_mu.")
+  if (length(beta_x_vars) == 1) {
+    #tau_mu and tau_delta are not identifiable in the presence of no auxiliary populations.
+      #This means you can only estimate one.
+    # ifelse(use_tau_delta, print("No auxiliary populations, only estimating tau_delta"),
+    #                       print("No auxiliary populations, only estimating tau_mu"))
+    init_tau_mu <- ifelse(use_tau_delta, NA, beta_x_vars)
 
-    init_tau_mu <- beta_x_vars
-
-    init_tau_delta <- NA
+    init_tau_delta <- ifelse(use_tau_delta, beta_x_vars, NA)
 
     return(c(gamma = init_gamma,
              tau_mu = ifelse(tau_mu_log, log(init_tau_mu), init_tau_mu),
-             tau_delta = NA))
+             tau_delta = ifelse(tau_delta_log, log(init_tau_delta), init_tau_delta)))
   }
 
   #tau_mu, estimated as the average off-diagonal value of this covariance matrix
@@ -287,7 +291,9 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
 
   #Setting up the function and parameters to optimize over
   if (set.init.params) {
-    init.params <- set_initial_params(sumstat_beta_list, sumstat_se_list, tau_mu_log, tau_delta_log)
+    #If tau_delta is set to fixed, set initial parameters estimating tau_delta (use_tau_delta = FALSE); otherwise, estimate using tau_delta
+    use_tau_delta <- !is.fixed[3]
+    init.params <- set_initial_params(sumstat_beta_list, sumstat_se_list, tau_mu_log, tau_delta_log, use_tau_delta = use_tau_delta)
     # names(init.params) <- c("gamma", "tau_mu", "tau_delta")
   } else {
     init.params <- c(gamma = 0, tau_mu = 0, tau_delta = 0)

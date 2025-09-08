@@ -11,7 +11,9 @@ MetaMR_simplemodel(
   r_mat_list = NA,
   check_zeros = TRUE,
   zero_thresh = 1e-08,
-  set.init.params = FALSE
+  set.init.params = FALSE,
+  tau_mu_zero = FALSE,
+  tau_delta_zero = FALSE
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ MetaMR_simplemodel(
 \item{zero_thresh}{the threshold specified in check_zeros. Is 1e-8 by default.}
 
 \item{set.init.params}{Whether the optim() function should use the observed data to set initial parameters for optimization.}
+
+\item{tau_mu_zero}{Whether tau_mu should be fixed at zero when performing MetaMR.}
+
+\item{tau_delta_zero}{Whether tau_delta should be fixed at zero when performing MetaMR.}
 }
 \value{
 a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)

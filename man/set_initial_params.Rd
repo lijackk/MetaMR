@@ -8,7 +8,8 @@ set_initial_params(
   sumstat_beta_list,
   sumstat_se_list,
   tau_mu_log = FALSE,
-  tau_delta_log = FALSE
+  tau_delta_log = FALSE,
+  use_tau_delta = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ set_initial_params(
 \item{tau_mu_log}{whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.}
 
 \item{tau_delta_log}{whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.}
+
+\item{use_tau_delta}{Whether to only estimate tau_mu or tau_delta when no auxiliary populations are provided.}
 }
 \value{
 A named vector of initial starting parameters for optim()

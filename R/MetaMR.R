@@ -8,6 +8,8 @@
 #' @param r_mat_list a list of matrices of estimated (residual) summary statistics correlations due to sample overlap between each set of GWAS summary statistics. Our method does not provide a matrix by default, but specifies a simple diagonal matrix in the event of no sample overlap.
 #' @param check_zeros whether to check if either variance parameter (tau_mu) or (tau_delta) was estimated to be exactly zero, which can destabilize the algorithm. If either estimated variance parameter falls below a certain threshold, we rerun optimization fixing that component at exactly zero.
 #' @param zero_thresh the threshold specified in check_zeros. Is 1e-8 by default.
+#' @param tau_mu_zero Whether tau_mu should be fixed at zero when performing MetaMR.
+#' @param tau_delta_zero Whether tau_delta should be fixed at zero when performing MetaMR.
 #' @param set.init.params Whether the optim() function should use the observed data to set initial parameters for optimization.
 #'
 #' @returns a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)
@@ -22,7 +24,7 @@
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 #' MetaMR_simplemodel(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50))
 #'
-MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, check_zeros = TRUE, zero_thresh = 1e-8, set.init.params = FALSE) {
+MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, check_zeros = TRUE, zero_thresh = 1e-8, set.init.params = FALSE, tau_mu_zero = FALSE, tau_delta_zero = FALSE) {
   #The usual battery of checks before we proceed
   if (length(sumstat_beta_list) != length(sumstat_se_list)) {
     stop("Summary statistic effect size estimates and standard errors imply differing numbers of variants!")
@@ -47,20 +49,30 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
     r_mat_list <- rep(diag_mat, n)
   }
 
-  #if K = 1, then only one population exists and tau_delta is not identifiable.
+  #Keeping track of which parameters to be fixed or not fixed throughout
+  is.fixed <- c(FALSE, tau_mu_zero, tau_delta_zero)
+  fix.params <- c(NA, ifelse(tau_mu_zero, 0, NA), ifelse(tau_delta_zero, 0, NA))
+  tau_mu_log <- ifelse(tau_mu_zero, FALSE, TRUE)
+  tau_delta_log <-ifelse(tau_delta_zero, FALSE, TRUE)
 
+  #if K = 1, then variance parameters tau_mu and tau_delta are not identifiable.
+    #If both variance parameters are not fixed at zero, we force tau_delta to zero.
   if (k == 1) {
-    print("No auxiliary populations present, tau_delta fixed at zero.")
-    #In this situation, we force tau_delta to equal zero.
-
+    if (!tau_mu_zero & !tau_delta_zero) {
+      print("No auxiliary populations, cannot estimate both variance parameters - tau_delta set to zero!")
+      tau_delta_zero <- TRUE
+      tau_delta_log <- FALSE
+      is.fixed[3] <- TRUE
+      fix.params[3] <- 0
+    }
     #Optimizing the full likelihood
     MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
                                                sumstat_se_list = sumstat_se_list,
                                                is_overlap = is_overlap,
                                                r_mat_list = r_mat_list,
-                                               is.fixed = c(FALSE, FALSE, TRUE),
-                                               fix.params = c(NA, NA, 0),
-                                               tau_mu_log = TRUE, tau_delta_log = FALSE,
+                                               is.fixed = is.fixed,
+                                               fix.params = fix.params,
+                                               tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
                                                optim_method = "Nelder-Mead",
                                                set.init.params = set.init.params)
 
@@ -69,9 +81,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  sumstat_se_list = sumstat_se_list,
                                                  is_overlap = is_overlap,
                                                  r_mat_list = r_mat_list,
-                                                 is.fixed = c(TRUE, FALSE, TRUE),
-                                                 fix.params = c(0, NA, 0),
-                                                 tau_mu_log = TRUE, tau_delta_log = FALSE,
+                                                 is.fixed = c(TRUE, is.fixed[2:3]),
+                                                 fix.params = c(0, fix.params[2:3]),
+                                                 tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
                                                  optim_method = "Nelder-Mead",
                                                  set.init.params = set.init.params)
 
@@ -81,9 +93,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                sumstat_se_list = sumstat_se_list,
                                                is_overlap = is_overlap,
                                                r_mat_list = r_mat_list,
-                                               is.fixed = c(FALSE, FALSE, FALSE),
-                                               fix.params = c(NA, NA, NA),
-                                               tau_mu_log = TRUE, tau_delta_log = TRUE,
+                                               is.fixed = is.fixed,
+                                               fix.params = fix.params,
+                                               tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
                                                optim_method = "Nelder-Mead",
                                                set.init.params = set.init.params)
 
@@ -92,76 +104,63 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  sumstat_se_list = sumstat_se_list,
                                                  is_overlap = is_overlap,
                                                  r_mat_list = r_mat_list,
-                                                 is.fixed = c(TRUE, FALSE, FALSE),
-                                                 fix.params = c(0, NA, NA),
-                                                 tau_mu_log = TRUE, tau_delta_log = TRUE,
+                                                 is.fixed = c(TRUE, is.fixed[2:3]),
+                                                 fix.params = c(0, fix.params[2:3]),
+                                                 tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
                                                  optim_method = "Nelder-Mead",
                                                  set.init.params = set.init.params)
   }
 
-  if (check_zeros) { #checks whether any variance components were optimized to be nearly zero
-    if (k == 1) {
-      if (exp(MetaMR_point_est$par["tau_mu"]) < zero_thresh) {
-        print("NOTE: tau_mu estimated below zero threshold, rerunning optimization")
+  if (check_zeros) { #checks whether tau_mu or tau_delta were optimized to be nearly zero, then reruns MetaMR if they were.
 
-        #Optimizing the full likelihood
-        MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
-                                                   sumstat_se_list = sumstat_se_list,
-                                                   is_overlap = is_overlap,
-                                                   r_mat_list = r_mat_list,
-                                                   is.fixed = c(FALSE, TRUE, TRUE),
-                                                   fix.params = c(NA, 0, 0),
-                                                   tau_mu_log = FALSE, tau_delta_log = FALSE,
-                                                   optim_method = "Nelder-Mead",
-                                                   set.init.params = set.init.params)
+    #Which variance parameters were estimated
+    tm_indicator <- "tau_mu" %in% names(MetaMR_point_est$par)
+    td_indicator <- "tau_delta" %in% names(MetaMR_point_est$par)
 
-        #if tau_mu is forced to zero, there is nothing to optimize
-        MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
-                                                     sumstat_se_list = sumstat_se_list,
-                                                     is_overlap = is_overlap,
-                                                     r_mat_list = r_mat_list,
-                                                     is.fixed = c(TRUE, TRUE, TRUE),
-                                                     fix.params = c(0, 0, 0),
-                                                     tau_mu_log = FALSE, tau_delta_log = FALSE,
-                                                     optim_method = "Nelder-Mead",
-                                                     set.init.params = set.init.params)
-      }
+    #If a variance parameter was estimated, was it "close enough" to zero?
+    taumu_nearzero <- ifelse(!tm_indicator, FALSE, ifelse(exp(MetaMR_point_est$par["tau_mu"]) < zero_thresh, TRUE, FALSE))
+    taudelta_nearzero <- ifelse(!td_indicator, FALSE, ifelse(exp(MetaMR_point_est$par["tau_delta"]) < zero_thresh, TRUE, FALSE))
+
+    if (!taumu_nearzero & !taudelta_nearzero) { #neither parameter was estimated near zero; there is nothing to do
+      print("no variance components estimated near zero by MetaMR.")
     } else {
-      if (exp(MetaMR_point_est$par["tau_mu"]) < zero_thresh || exp(MetaMR_point_est$par["tau_delta"]) < zero_thresh) {
-        print("a variance component was estimated below zero threshold, rerunning optimization")
+      if (taumu_nearzero) {
+        print("tau_mu estimated near zero; rerunning estimation fixed at exactly zero.")
+        tau_mu_zero <- TRUE
+        tau_mu_log <- FALSE
+        is.fixed[2] <- TRUE
+        fix.params[2] <- 0
+      }
 
-        #Identify which of tau_mu or tau_delta are near zero, and set them to exactly zero
-        #These vectors need to be unnamed or they won't function properly when setting initial parameters to true.
-        nearzero_indicator <- unname(c(exp(MetaMR_point_est$par["tau_mu"]) < zero_thresh,
-                                exp(MetaMR_point_est$par["tau_delta"]) < zero_thresh))
-        nearzero_fixparams <- unname(ifelse(nearzero_indicator, 0, NA))
-
-        #Optimizing the full likelihood with near-zero variance components
+      if (taudelta_nearzero) {
+        print("tau_delta estimated near zero; rerunning estimation fixed at exactly zero.")
+        tau_delta_zero <- TRUE
+        tau_delta_log <- FALSE
+        is.fixed[3] <- TRUE
+        fix.params[3] <- 0
+      }
+        #Optimizing the full likelihood with the new constraints
         MetaMR_point_est <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
                                                    sumstat_se_list = sumstat_se_list,
                                                    is_overlap = is_overlap,
                                                    r_mat_list = r_mat_list,
-                                                   is.fixed = c(FALSE, nearzero_indicator),
-                                                   fix.params = c(NA, nearzero_fixparams),
-                                                   tau_mu_log = !nearzero_indicator[1],
-                                                   tau_delta_log = !nearzero_indicator[2],
+                                                   is.fixed = is.fixed,
+                                                   fix.params = fix.params,
+                                                   tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
                                                    optim_method = "Nelder-Mead",
                                                    set.init.params = set.init.params)
 
-        #Optimizing the constrained likelihood under the null hypothesis with near-zero variance components
+        #Optimizing the constrained likelihood under the null hypothesis
         MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
                                                      sumstat_se_list = sumstat_se_list,
                                                      is_overlap = is_overlap,
                                                      r_mat_list = r_mat_list,
-                                                     is.fixed = c(TRUE, nearzero_indicator),
-                                                     fix.params = c(0, nearzero_fixparams),
-                                                     tau_mu_log = !nearzero_indicator[1],
-                                                     tau_delta_log = !nearzero_indicator[2],
+                                                     is.fixed = c(TRUE, is.fixed[2:3]),
+                                                     fix.params = c(0, fix.params[2:3]),
+                                                     tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
                                                      optim_method = "Nelder-Mead",
                                                      set.init.params = set.init.params)
-      }
     }
-
   }
 
   #Obtaining the variance of each of the estimated parameters using the information matrix
