@@ -14,7 +14,7 @@ simple_loglik_optimize(
   set.init.params = FALSE,
   tau_mu_log = FALSE,
   tau_delta_log = FALSE,
-  optim_method = c("Nelder-Mead", "L-BFGS-B")
+  optim_method = c("Nelder-Mead", "L-BFGS-B", "Brent")
 )
 }
 \arguments{
@@ -36,7 +36,7 @@ simple_loglik_optimize(
 
 \item{tau_delta_log}{whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.}
 
-\item{optim_method}{what method to use for the optim function (Nelder-Mead (default) or L-BFGS-B)}
+\item{optim_method}{what method to use for the optim function (Nelder-Mead (default), Brent (for 1-dimensional optimization), or L-BFGS-B (not recommended))}
 }
 \value{
 the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood

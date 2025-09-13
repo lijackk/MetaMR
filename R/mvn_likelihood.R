@@ -234,7 +234,7 @@ set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = 
 #' @param fix.params if a parameter is set as fixed in is.fixed, what it should be. Follows order (gamma, tau_mu, tau_delta). Our function will check to make sure is.fixed and fix.params are compatible with each other.
 #' @param tau_mu_log whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.
 #' @param tau_delta_log whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.
-#' @param optim_method what method to use for the optim function (Nelder-Mead (default) or L-BFGS-B)
+#' @param optim_method what method to use for the optim function (Nelder-Mead (default), Brent (for 1-dimensional optimization), or L-BFGS-B (not recommended))
 #' @param set.init.params Whether to manually set initial parameters from the initial data. If not, the initial parameters used are (0, 0, 0).
 #'
 #' @returns the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood
@@ -255,7 +255,7 @@ set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = 
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "Nelder-Mead")
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "L-BFGS-B")
-simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), set.init.params = FALSE, tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B")) {
+simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), set.init.params = FALSE, tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B", "Brent")) {
 
   #Whether is.fixed and fix.params are compatible
     #If is.fixed[i] is FALSE, is.na(fix.params)[i] should be TRUE
@@ -299,33 +299,76 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
     init.params <- c(gamma = 0, tau_mu = 0, tau_delta = 0)
   }
   init.params <- init.params[!is.fixed]
-  optim_fn <- function(params) {
-    gamma <- ifelse("gamma" %in% names(init.params), params["gamma"], fix.params[1])
-    tau_mu <- ifelse("tau_mu" %in% names(init.params), params["tau_mu"], fix.params[2])
-    tau_delta <- ifelse("tau_delta" %in% names(init.params), params["tau_delta"], fix.params[3])
 
-    return(-simple_loglik_full(sumstat_beta_list = sumstat_beta_list,
-                               sumstat_se_list = sumstat_se_list,
-                               gamma = gamma,
-                               is_overlap = is_overlap,
-                               r_mat_list = r_mat_list,
-                               tau_mu = tau_mu,
-                               tau_delta = tau_delta,
-                               tau_mu_log = tau_mu_log,
-                               tau_delta_log = tau_delta_log))
+  #Brent's method needs a different function to work
+  if (optim_method == "Brent"){
+    free_names <- names(init.params)
+    if (length(free_names) > 1) {
+      stop("Brent's method won't work with >1 dimension!")
+    }
+    free_index <- which(c("gamma", "tau_mu", "tau_delta") == free_names)
+    optimize_fn <- function(x) {
+      full <- fix.params
+      full[free_index] <- x
+      gamma <- full[1]
+      tau_mu <- full[2]
+      tau_delta <- full[3]
+      return(-simple_loglik_full(sumstat_beta_list = sumstat_beta_list,
+                                 sumstat_se_list = sumstat_se_list,
+                                 gamma = gamma,
+                                 is_overlap = is_overlap,
+                                 r_mat_list = r_mat_list,
+                                 tau_mu = tau_mu,
+                                 tau_delta = tau_delta,
+                                 tau_mu_log = tau_mu_log,
+                                 tau_delta_log = tau_delta_log))
+    }
+  } else {
+    optim_fn <- function(params) {
+      gamma <- ifelse("gamma" %in% names(init.params), params["gamma"], fix.params[1])
+      tau_mu <- ifelse("tau_mu" %in% names(init.params), params["tau_mu"], fix.params[2])
+      tau_delta <- ifelse("tau_delta" %in% names(init.params), params["tau_delta"], fix.params[3])
+
+      return(-simple_loglik_full(sumstat_beta_list = sumstat_beta_list,
+                                 sumstat_se_list = sumstat_se_list,
+                                 gamma = gamma,
+                                 is_overlap = is_overlap,
+                                 r_mat_list = r_mat_list,
+                                 tau_mu = tau_mu,
+                                 tau_delta = tau_delta,
+                                 tau_mu_log = tau_mu_log,
+                                 tau_delta_log = tau_delta_log))
+    }
   }
 
-  #minimize the negative log-likelihood using either unbounded Nelder-Mead or bounded L-BFGS-B
-  if (optim_method == "L-BFGS-B") { #L-BFGS-B needs bounds
-    stats::optim(par = init.params,
-                 fn = optim_fn,
-                 method = optim_method,
-                 lower = c(-Inf, -16, -16)[!is.fixed], upper = c(Inf, 10, 10)[!is.fixed],
-                 hessian = TRUE)
-  } else { #Nelder-Mead is unbounded
-    stats::optim(par = init.params,
-                 fn = optim_fn,
-                 method = optim_method,
-                 hessian = TRUE)
+  #minimize the negative log-likelihood using Brent's method, Nelder-Mead or L-BFGS-B
+  if (optim_method == "Brent") {#for (bounded) one-dimensional optimization using Brent's method
+    if ((is.fixed[2] == FALSE & tau_mu_log == FALSE) ||
+        (is.fixed[3] == FALSE & tau_delta_log == FALSE)) { #optimizing a non-transformed variance component, bounds should be positive
+      stats::optim(par = init.params[free_names],
+                   fn = optimize_fn,
+                   method = optim_method,
+                   lower = 0, upper = 10,
+                   hessian = TRUE)
+    } else { #optimizing gamma or a log-transformed variance component, search space centered around zero
+      stats::optim(par = init.params[free_names],
+                   fn = optimize_fn,
+                   method = optim_method,
+                   lower = -16, upper = 16,
+                   hessian = TRUE)
+    }
+  } else {
+    if (optim_method == "L-BFGS-B") { #L-BFGS-B needs bounds
+      stats::optim(par = init.params,
+                   fn = optim_fn,
+                   method = optim_method,
+                   lower = c(-Inf, -16, -16)[!is.fixed], upper = c(Inf, 10, 10)[!is.fixed],
+                   hessian = TRUE)
+    } else { #Nelder-Mead is unbounded and is the default method if a "wrong" optimization method is specified
+      stats::optim(par = init.params,
+                   fn = optim_fn,
+                   method = optim_method,
+                   hessian = TRUE)
+    }
   }
 }
