@@ -56,5 +56,6 @@ simple_loglik_single(sumstat_beta = c(0.4, 0.6, 0.3), sumstat_se = c(0.1, 0.1, 0
 simple_loglik_single(sumstat_beta = c(0.4, 0.6, 0.3), sumstat_se = c(0.1, 0.1, 0.05),
                      is_overlap = TRUE,
                      r_mat = matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3),
-                     gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
+                     gamma = 0.8, tau_mu = 0, tau_delta = 0,
+                     tau_mu_log = TRUE, tau_delta_log = TRUE)
 }

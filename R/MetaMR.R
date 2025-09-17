@@ -11,6 +11,7 @@
 #' @param tau_mu_zero Whether tau_mu should be fixed at zero when performing MetaMR.
 #' @param tau_delta_zero Whether tau_delta should be fixed at zero when performing MetaMR.
 #' @param set.init.params Whether the optim() function should use the observed data to set initial parameters for optimization.
+#' @param select_zscore if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.
 #'
 #' @returns a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)
 #' @export
@@ -20,11 +21,14 @@
 #' r_mat <- diag(4)
 #' r_mat[1,2] <- 0.2
 #' r_mat[2,1] <- 0.2
-#' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.05, tau_delta = 0.02, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
-#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-#' MetaMR_simplemodel(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50))
+#' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.05, tau_delta = 0.02, SE_list = SE_list,
+#'                                  vars = 50, pops = 3, r_mat = r_mat)
+#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)},
+#'                            simplify = FALSE)
+#' MetaMR_simplemodel(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list,
+#'                    r_mat_list = rep(list(r_mat), 50))
 #'
-MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, check_zeros = TRUE, zero_thresh = 1e-8, set.init.params = FALSE, tau_mu_zero = FALSE, tau_delta_zero = FALSE) {
+MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, check_zeros = TRUE, zero_thresh = 1e-8, set.init.params = FALSE, tau_mu_zero = FALSE, tau_delta_zero = FALSE, select_zscore = NA) {
   #The usual battery of checks before we proceed
   if (length(sumstat_beta_list) != length(sumstat_se_list)) {
     stop("Summary statistic effect size estimates and standard errors imply differing numbers of variants!")
@@ -73,8 +77,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                is.fixed = is.fixed,
                                                fix.params = fix.params,
                                                tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                               optim_method = "Nelder-Mead",
-                                               set.init.params = set.init.params)
+                                               optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                               set.init.params = set.init.params,
+                                               select_zscore = select_zscore)
 
     #Optimizing the constrained likelihood under the null hypothesis
     MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
@@ -84,8 +89,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  is.fixed = c(TRUE, is.fixed[2:3]),
                                                  fix.params = c(0, fix.params[2:3]),
                                                  tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                                 optim_method = "Nelder-Mead",
-                                                 set.init.params = set.init.params)
+                                                 optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                                 set.init.params = set.init.params,
+                                                 select_zscore = select_zscore)
 
   } else {
     #Optimizing the full likelihood
@@ -96,8 +102,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                is.fixed = is.fixed,
                                                fix.params = fix.params,
                                                tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                               optim_method = "Nelder-Mead",
-                                               set.init.params = set.init.params)
+                                               optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                               set.init.params = set.init.params,
+                                               select_zscore = select_zscore)
 
     #Optimizing the constrained likelihood under the null hypothesis
     MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
@@ -107,8 +114,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  is.fixed = c(TRUE, is.fixed[2:3]),
                                                  fix.params = c(0, fix.params[2:3]),
                                                  tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                                 optim_method = "Nelder-Mead",
-                                                 set.init.params = set.init.params)
+                                                 optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                                 set.init.params = set.init.params,
+                                                 select_zscore = select_zscore)
   }
 
   if (check_zeros) { #checks whether tau_mu or tau_delta were optimized to be nearly zero, then reruns MetaMR if they were.
@@ -147,8 +155,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                    is.fixed = is.fixed,
                                                    fix.params = fix.params,
                                                    tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                                   optim_method = "Nelder-Mead",
-                                                   set.init.params = set.init.params)
+                                                   optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                                   set.init.params = set.init.params,
+                                                   select_zscore = select_zscore)
 
         #Optimizing the constrained likelihood under the null hypothesis
         MetaMR_null_loglik <- simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list,
@@ -158,8 +167,9 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                      is.fixed = c(TRUE, is.fixed[2:3]),
                                                      fix.params = c(0, fix.params[2:3]),
                                                      tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                                     optim_method = "Nelder-Mead",
-                                                     set.init.params = set.init.params)
+                                                     optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                                     set.init.params = set.init.params,
+                                                     select_zscore = select_zscore)
     }
   }
 

@@ -54,11 +54,14 @@ simple_loglik_full(sumstat_beta_list = list(c(0,0,0), c(0,0,0), c(0,0,0)),
 simple_loglik_full(sumstat_beta_list = list(c(0.4, 0.6, 0.3), c(0.7,1,0.2), c(0.3,0.36,0.3)),
                      sumstat_se_list = list(c(0.1, 0.1, 0.05), c(0.2, 0.2, 0.1), c(0.1, 0.1, 0.05)),
                      is_overlap = TRUE,
-                     r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3)), 3),
+                     r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1),
+                                       nrow = 3, ncol = 3)), 3),
                      gamma = 0.8, tau_mu = 1, tau_delta = 1)
 simple_loglik_full(sumstat_beta_list = list(c(0.4, 0.6, 0.3), c(0.7,1,0.2), c(0.3,0.36,0.3)),
                      sumstat_se_list = list(c(0.1, 0.1, 0.05), c(0.2, 0.2, 0.1), c(0.1, 0.1, 0.05)),
                      is_overlap = TRUE,
-                     r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3)), 3),
-                     gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
+                     r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1),
+                                       nrow = 3, ncol = 3)), 3),
+                     gamma = 0.8, tau_mu = 0, tau_delta = 0,
+                     tau_mu_log = TRUE, tau_delta_log = TRUE)
 }

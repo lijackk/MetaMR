@@ -21,7 +21,8 @@
 #' r_mat <- diag(4)
 #' r_mat[1,2] <- 0.2
 #' r_mat[2,1] <- 0.2
-#' simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
+#' simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3,
+#'                 r_mat = r_mat)
 simplemodel_sim <- function(gamma, tau_mu, tau_delta, vars, pops, SE_list, r_mat = NA, seed = 2025) {
   set.seed(seed)
   # Basic checks to ensure dimensions of standard errors and residual correlations are compatible with variant counts

@@ -28,7 +28,8 @@
 #' simple_loglik_single(sumstat_beta = c(0.4, 0.6, 0.3), sumstat_se = c(0.1, 0.1, 0.05),
 #'                      is_overlap = TRUE,
 #'                      r_mat = matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3),
-#'                      gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
+#'                      gamma = 0.8, tau_mu = 0, tau_delta = 0,
+#'                      tau_mu_log = TRUE, tau_delta_log = TRUE)
 simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = FALSE, r_mat = NA, tau_mu, tau_delta, tau_mu_log = FALSE, tau_delta_log = FALSE, select_zscore = NA) {
   # Initial checks
   if (length(sumstat_beta) != length(sumstat_se)) {
@@ -106,13 +107,16 @@ simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = F
 #' simple_loglik_full(sumstat_beta_list = list(c(0.4, 0.6, 0.3), c(0.7,1,0.2), c(0.3,0.36,0.3)),
 #'                      sumstat_se_list = list(c(0.1, 0.1, 0.05), c(0.2, 0.2, 0.1), c(0.1, 0.1, 0.05)),
 #'                      is_overlap = TRUE,
-#'                      r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3)), 3),
+#'                      r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1),
+#'                                        nrow = 3, ncol = 3)), 3),
 #'                      gamma = 0.8, tau_mu = 1, tau_delta = 1)
 #' simple_loglik_full(sumstat_beta_list = list(c(0.4, 0.6, 0.3), c(0.7,1,0.2), c(0.3,0.36,0.3)),
 #'                      sumstat_se_list = list(c(0.1, 0.1, 0.05), c(0.2, 0.2, 0.1), c(0.1, 0.1, 0.05)),
 #'                      is_overlap = TRUE,
-#'                      r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3)), 3),
-#'                      gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
+#'                      r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1),
+#'                                        nrow = 3, ncol = 3)), 3),
+#'                      gamma = 0.8, tau_mu = 0, tau_delta = 0,
+#'                      tau_mu_log = TRUE, tau_delta_log = TRUE)
 simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_overlap = FALSE, r_mat_list = NA, tau_mu, tau_delta, tau_mu_log = FALSE, tau_delta_log = FALSE, select_zscore = NA) {
   #Initial checks - will make more later if necessary
   if (length(sumstat_beta_list) != length(sumstat_se_list)) {
@@ -190,14 +194,17 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 #' i <- 1
 #' observed_data <- simplemodel_sim(gamma = gamma, tau_mu = tau_mu, tau_delta = tau_delta,
 #'                                  SE_list = SE_list, vars = nvar, pops = 3, seed = i)
-#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
+#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)},
+#'                            simplify = FALSE)
 #'
 #' sumstat_beta_list0 <- lapply(sumstat_beta_list, function(x){return(x[1:2])})
 #' sumstat_beta_list2 <- lapply(sumstat_beta_list, function(x){return(x[1:4])})
 #' SE_list0 <- lapply(SE_list, function(x){return(x[1:2])})
 #' SE_list2 <- lapply(SE_list, function(x){return(x[1:4])})
-#' set_initial_params(sumstat_beta_list = sumstat_beta_list0, sumstat_se_list = SE_list0, tau_mu_log = TRUE, tau_delta_log = TRUE)
-#' set_initial_params(sumstat_beta_list = sumstat_beta_list2, sumstat_se_list = SE_list2, tau_mu_log = TRUE, tau_delta_log = TRUE)
+#' set_initial_params(sumstat_beta_list = sumstat_beta_list0, sumstat_se_list = SE_list0,
+#'                    tau_mu_log = TRUE, tau_delta_log = TRUE)
+#' set_initial_params(sumstat_beta_list = sumstat_beta_list2, sumstat_se_list = SE_list2,
+#'                    tau_mu_log = TRUE, tau_delta_log = TRUE)
 #'
 set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = FALSE, tau_delta_log = FALSE,
                                use_tau_delta = FALSE) {
@@ -266,16 +273,33 @@ set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = 
 #' r_mat <- diag(4)
 #' r_mat[1,2] <- 0.2
 #' r_mat[2,1] <- 0.2
-#' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
-#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead")
-#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead", set.init.params = TRUE)
-#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "L-BFGS-B")
+#' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list,
+#'                                  vars = 50, pops = 3, r_mat = r_mat)
+#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)},
+#'                            simplify = FALSE)
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list,
+#'                        r_mat_list = rep(list(r_mat), 50),
+#'                        tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead")
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list,
+#'                        r_mat_list = rep(list(r_mat), 50),
+#'                        tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "Nelder-Mead",
+#'                        set.init.params = TRUE)
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list,
+#'                        r_mat_list = rep(list(r_mat), 50),
+#'                        tau_mu_log = TRUE, tau_delta_log = TRUE, optim_method = "L-BFGS-B")
 #'
-#' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
-#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "Nelder-Mead")
-#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "L-BFGS-B")
+#' observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0, SE_list = SE_list,
+#'                                  vars = 50, pops = 3, r_mat = r_mat)
+#' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)},
+#'                            simplify = FALSE)
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list,
+#'                        r_mat_list = rep(list(r_mat), 50),
+#'                        is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0),
+#'                        tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "Nelder-Mead")
+#' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list,
+#'                        r_mat_list = rep(list(r_mat), 50),
+#'                        is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0),
+#'                        tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "L-BFGS-B")
 simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), set.init.params = FALSE, tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B", "Brent"), select_zscore = NA) {
 
   #Whether is.fixed and fix.params are compatible

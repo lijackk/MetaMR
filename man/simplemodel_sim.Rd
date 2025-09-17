@@ -45,5 +45,6 @@ SE_list <- rep(list(c(0.2, 0.1, 0.05, 0.05)), 50)
 r_mat <- diag(4)
 r_mat[1,2] <- 0.2
 r_mat[2,1] <- 0.2
-simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
+simplemodel_sim(gamma = 0.7, tau_mu = 0.5, tau_delta = 0.2, SE_list = SE_list, vars = 50, pops = 3,
+                r_mat = r_mat)
 }

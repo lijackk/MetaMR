@@ -13,7 +13,8 @@ MetaMR_simplemodel(
   zero_thresh = 1e-08,
   set.init.params = FALSE,
   tau_mu_zero = FALSE,
-  tau_delta_zero = FALSE
+  tau_delta_zero = FALSE,
+  select_zscore = NA
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ MetaMR_simplemodel(
 \item{tau_mu_zero}{Whether tau_mu should be fixed at zero when performing MetaMR.}
 
 \item{tau_delta_zero}{Whether tau_delta should be fixed at zero when performing MetaMR.}
+
+\item{select_zscore}{if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.}
 }
 \value{
 a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)
@@ -46,8 +49,11 @@ SE_list <- rep(list(c(0.2, 0.1, 0.05, 0.05)), 50)
 r_mat <- diag(4)
 r_mat[1,2] <- 0.2
 r_mat[2,1] <- 0.2
-observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.05, tau_delta = 0.02, SE_list = SE_list, vars = 50, pops = 3, r_mat = r_mat)
-sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
-MetaMR_simplemodel(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50))
+observed_data <- simplemodel_sim(gamma = 0.7, tau_mu = 0.05, tau_delta = 0.02, SE_list = SE_list,
+                                 vars = 50, pops = 3, r_mat = r_mat)
+sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)},
+                           simplify = FALSE)
+MetaMR_simplemodel(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list,
+                   r_mat_list = rep(list(r_mat), 50))
 
 }

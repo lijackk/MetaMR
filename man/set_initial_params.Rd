@@ -44,13 +44,16 @@ SE_list <- rep(list(sigma_Xk), nvar)
 i <- 1
 observed_data <- simplemodel_sim(gamma = gamma, tau_mu = tau_mu, tau_delta = tau_delta,
                                  SE_list = SE_list, vars = nvar, pops = 3, seed = i)
-sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
+sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)},
+                           simplify = FALSE)
 
 sumstat_beta_list0 <- lapply(sumstat_beta_list, function(x){return(x[1:2])})
 sumstat_beta_list2 <- lapply(sumstat_beta_list, function(x){return(x[1:4])})
 SE_list0 <- lapply(SE_list, function(x){return(x[1:2])})
 SE_list2 <- lapply(SE_list, function(x){return(x[1:4])})
-set_initial_params(sumstat_beta_list = sumstat_beta_list0, sumstat_se_list = SE_list0, tau_mu_log = TRUE, tau_delta_log = TRUE)
-set_initial_params(sumstat_beta_list = sumstat_beta_list2, sumstat_se_list = SE_list2, tau_mu_log = TRUE, tau_delta_log = TRUE)
+set_initial_params(sumstat_beta_list = sumstat_beta_list0, sumstat_se_list = SE_list0,
+                   tau_mu_log = TRUE, tau_delta_log = TRUE)
+set_initial_params(sumstat_beta_list = sumstat_beta_list2, sumstat_se_list = SE_list2,
+                   tau_mu_log = TRUE, tau_delta_log = TRUE)
 
 }
