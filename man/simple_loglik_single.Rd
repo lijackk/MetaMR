@@ -13,7 +13,8 @@ simple_loglik_single(
   tau_mu,
   tau_delta,
   tau_mu_log = FALSE,
-  tau_delta_log = FALSE
+  tau_delta_log = FALSE,
+  select_zscore = NA
 )
 }
 \arguments{
@@ -34,12 +35,14 @@ simple_loglik_single(
 \item{tau_mu_log}{Whether tau_mu represents its log-transformed value or not}
 
 \item{tau_delta_log}{Whether tau_delta represents its log-transformed value or not}
+
+\item{select_zscore}{if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.}
 }
 \value{
 A log-likelihood for the summary statistics of a single variant given some parameters gamma, mu, tau
 }
 \description{
-The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming no selection, and i.i.d. normal mu and delta
+The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming i.i.d. normal mu and delta. Now includes an option to specify whether variants were selected based on a Z-score threshold for the target exposure.
 }
 \examples{
 simple_loglik_single(sumstat_beta = c(0,0,0), sumstat_se = c(1,1,1),

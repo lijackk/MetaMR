@@ -1,6 +1,6 @@
 #' Log-likelihood function under simple model (single-variant)
 #'
-#' The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming no selection, and i.i.d. normal mu and delta
+#' The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming i.i.d. normal mu and delta. Now includes an option to specify whether variants were selected based on a Z-score threshold for the target exposure.
 #'
 #' @param gamma The exposure-outcome causal effect parameter
 #' @param tau_mu The variance of the normal distribution underlying mu. It should be log-transformed unless set to be exactly zero.
@@ -11,6 +11,7 @@
 #' @param sumstat_se the standard errors of the effect size estimates in sumstat_beta
 #' @param tau_mu_log Whether tau_mu represents its log-transformed value or not
 #' @param tau_delta_log Whether tau_delta represents its log-transformed value or not
+#' @param select_zscore if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.
 #'
 #' @returns A log-likelihood for the summary statistics of a single variant given some parameters gamma, mu, tau
 #' @export
@@ -28,7 +29,7 @@
 #'                      is_overlap = TRUE,
 #'                      r_mat = matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3),
 #'                      gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
-simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = FALSE, r_mat = NA, tau_mu, tau_delta, tau_mu_log = FALSE, tau_delta_log = FALSE) {
+simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = FALSE, r_mat = NA, tau_mu, tau_delta, tau_mu_log = FALSE, tau_delta_log = FALSE, select_zscore = NA) {
   # Initial checks
   if (length(sumstat_beta) != length(sumstat_se)) {
     stop("Summary statistic effect size estimates and standard errors are not the same length!")
@@ -66,6 +67,14 @@ simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = F
 
   #Calculating the log-likelihood
   logLik <- -1/2 * (log(det(sigma_j)) + t(sumstat_beta) %*% solve(sigma_j) %*% t(t(sumstat_beta)) + (K+1)*log(2*pi))
+
+  #Bringing in the possibility of selection
+  #log-likelihood = joint/marginal; marginal = probability of selection, joint = same as original log-likelihood for selected variants
+  if (!is.na(as.numeric(select_zscore))) {
+    logptau_thresh <- log(2 * stats::pnorm(abs(select_zscore) * sumstat_se[2]/sqrt(tau_mu + tau_delta + sumstat_se[2]^2), lower.tail = FALSE))
+    logLik <- logLik - logptau_thresh
+  }
+
   return(logLik)
 }
 
@@ -82,6 +91,7 @@ simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = F
 #' @param tau_delta The variance of the normal distributions underlying delta. It should be log-transformed unless set to be exactly zero.
 #' @param tau_mu_log Whether tau_mu represents its log-transformed value or not.
 #' @param tau_delta_log Whether tau_delta represents its log-transformed value or not.
+#' @param select_zscore if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.
 #'
 #' @returns A log-likelihood for the summary statistics of a set of variants given some parameters gamma, mu, tau
 #' @export
@@ -103,7 +113,7 @@ simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = F
 #'                      is_overlap = TRUE,
 #'                      r_mat_list <- rep(list(matrix(c(1, 0.2, 0, 0.2, 1, 0, 0, 0, 1), nrow = 3, ncol = 3)), 3),
 #'                      gamma = 0.8, tau_mu = 0, tau_delta = 0, tau_mu_log = TRUE, tau_delta_log = TRUE)
-simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_overlap = FALSE, r_mat_list = NA, tau_mu, tau_delta, tau_mu_log = FALSE, tau_delta_log = FALSE) {
+simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_overlap = FALSE, r_mat_list = NA, tau_mu, tau_delta, tau_mu_log = FALSE, tau_delta_log = FALSE, select_zscore = NA) {
   #Initial checks - will make more later if necessary
   if (length(sumstat_beta_list) != length(sumstat_se_list)) {
     stop("Summary statistic effect size estimates and standard errors imply differing numbers of variants!")
@@ -117,6 +127,14 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
 
   if (is_overlap == TRUE & identical(r_mat_list, NA)) {
     stop("If you assume sample overlap, please provide residual correlation matrices in r_mat_list!")
+  }
+
+  #If selection was performed, check whether inputted z-scores actually fulfill selection threshold
+  if (!is.na(as.numeric(select_zscore))) {
+    zscores <- unlist(lapply(sumstat_beta_list, function(X){X[2]})) / unlist(lapply(sumstat_se_list, function(X){X[2]}))
+    if (any(abs(zscores) < select_zscore)) {
+      stop("Not all selected variants fulfill the specified target exposure association z-score selection criteria!")
+    }
   }
 
   n <- length(sumstat_beta_list)
@@ -138,14 +156,16 @@ simple_loglik_full <- function(sumstat_beta_list, sumstat_se_list, gamma, is_ove
                                                tau_mu = tau_mu,
                                                tau_delta = tau_delta,
                                                tau_mu_log = tau_mu_log,
-                                               tau_delta_log = tau_delta_log)
+                                               tau_delta_log = tau_delta_log,
+                                               select_zscore = select_zscore)
   }
   return(sum(loglik_variants))
 }
 
 #' Setting Initial Parameters for Better Optim()
 #'
-#' Numerical optimization methods may be sensitive to choice of initial parameters. This function uses a method of moments-like estimator to set more plausible initial parameters for optimization of the log-likelihood function over gamma, tau_mu and delta
+#' Numerical optimization methods may be sensitive to choice of initial parameters. This function uses a method of moments-like estimator to set more plausible initial parameters for optimization of the log-likelihood function over gamma, tau_mu and delta.
+#' Note that this initial parametrization does NOT factor in variant selection. I have not yet tested the reliability of this initialization in this scenario.
 #'
 #' @param sumstat_beta_list a list of vectors of GWAS effect size estimates with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of many variants.
 #' @param tau_mu_log whether tau_mu is log-transformed. It should be log-transformed unless set to be exactly zero.
@@ -236,6 +256,7 @@ set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = 
 #' @param tau_delta_log whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.
 #' @param optim_method what method to use for the optim function (Nelder-Mead (default), Brent (for 1-dimensional optimization), or L-BFGS-B (not recommended))
 #' @param set.init.params Whether to manually set initial parameters from the initial data. If not, the initial parameters used are (0, 0, 0).
+#' @param select_zscore if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.
 #'
 #' @returns the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood
 #' @export
@@ -255,7 +276,7 @@ set_initial_params <- function(sumstat_beta_list, sumstat_se_list, tau_mu_log = 
 #' sumstat_beta_list <- apply(observed_data$beta_matrix, MARGIN = 1, function(x) {return(x)}, simplify = FALSE)
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "Nelder-Mead")
 #' simple_loglik_optimize(sumstat_beta_list = sumstat_beta_list, sumstat_se_list = SE_list, r_mat_list = rep(list(r_mat), 50), is.fixed = c(FALSE, FALSE, TRUE), fix.params = c(NA, NA, 0), tau_mu_log = TRUE, tau_delta_log = FALSE, optim_method = "L-BFGS-B")
-simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), set.init.params = FALSE, tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B", "Brent")) {
+simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overlap = FALSE, r_mat_list= NA, is.fixed = c(FALSE, FALSE, FALSE), fix.params = c(NA, NA, NA), set.init.params = FALSE, tau_mu_log = FALSE, tau_delta_log = FALSE, optim_method = c("Nelder-Mead", "L-BFGS-B", "Brent"), select_zscore = NA) {
 
   #Whether is.fixed and fix.params are compatible
     #If is.fixed[i] is FALSE, is.na(fix.params)[i] should be TRUE
@@ -321,7 +342,8 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
                                  tau_mu = tau_mu,
                                  tau_delta = tau_delta,
                                  tau_mu_log = tau_mu_log,
-                                 tau_delta_log = tau_delta_log))
+                                 tau_delta_log = tau_delta_log,
+                                 select_zscore = select_zscore))
     }
   } else {
     optim_fn <- function(params) {
@@ -337,7 +359,8 @@ simple_loglik_optimize <- function(sumstat_beta_list, sumstat_se_list, is_overla
                                  tau_mu = tau_mu,
                                  tau_delta = tau_delta,
                                  tau_mu_log = tau_mu_log,
-                                 tau_delta_log = tau_delta_log))
+                                 tau_delta_log = tau_delta_log,
+                                 select_zscore = select_zscore))
     }
   }
 

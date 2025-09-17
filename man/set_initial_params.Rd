@@ -27,7 +27,8 @@ set_initial_params(
 A named vector of initial starting parameters for optim()
 }
 \description{
-Numerical optimization methods may be sensitive to choice of initial parameters. This function uses a method of moments-like estimator to set more plausible initial parameters for optimization of the log-likelihood function over gamma, tau_mu and delta
+Numerical optimization methods may be sensitive to choice of initial parameters. This function uses a method of moments-like estimator to set more plausible initial parameters for optimization of the log-likelihood function over gamma, tau_mu and delta.
+Note that this initial parametrization does NOT factor in variant selection. I have not yet tested the reliability of this initialization in this scenario.
 }
 \examples{
 nvar <- 100
