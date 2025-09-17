@@ -13,7 +13,8 @@ simple_loglik_full(
   tau_mu,
   tau_delta,
   tau_mu_log = FALSE,
-  tau_delta_log = FALSE
+  tau_delta_log = FALSE,
+  select_zscore = NA
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ simple_loglik_full(
 \item{tau_mu_log}{Whether tau_mu represents its log-transformed value or not.}
 
 \item{tau_delta_log}{Whether tau_delta represents its log-transformed value or not.}
+
+\item{select_zscore}{if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.}
 }
 \value{
 A log-likelihood for the summary statistics of a set of variants given some parameters gamma, mu, tau

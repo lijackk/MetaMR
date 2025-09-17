@@ -14,7 +14,8 @@ simple_loglik_optimize(
   set.init.params = FALSE,
   tau_mu_log = FALSE,
   tau_delta_log = FALSE,
-  optim_method = c("Nelder-Mead", "L-BFGS-B", "Brent")
+  optim_method = c("Nelder-Mead", "L-BFGS-B", "Brent"),
+  select_zscore = NA
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ simple_loglik_optimize(
 \item{tau_delta_log}{whether tau_delta is log-transformed. It should be log-transformed unless set to be exactly zero.}
 
 \item{optim_method}{what method to use for the optim function (Nelder-Mead (default), Brent (for 1-dimensional optimization), or L-BFGS-B (not recommended))}
+
+\item{select_zscore}{if the instrument was selected because its association with the exposure in the target exceeded some Z-score threshold, what threshold this is. If no selection was performed to obtain the summary statistics, put NA.}
 }
 \value{
 the output from optim(), detailing the optimized values for gamma, tau_mu and tau_delta, information about convergence, and the negative log-likelihood
