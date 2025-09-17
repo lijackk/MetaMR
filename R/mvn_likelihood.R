@@ -71,7 +71,7 @@ simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = F
   #Bringing in the possibility of selection
   #log-likelihood = joint/marginal; marginal = probability of selection, joint = same as original log-likelihood for selected variants
   if (!is.na(as.numeric(select_zscore))) {
-    logptau_thresh <- log(2 * stats::pnorm(abs(select_zscore) * sumstat_se[2]/sqrt(tau_mu + tau_delta + sumstat_se[2]^2), lower.tail = FALSE))
+    logptau_thresh <- log(2 * pnorm(abs(select_zscore) * sumstat_se[2]/sqrt(tau_mu + tau_delta + sumstat_se[2]^2), lower.tail = FALSE))
     logLik <- logLik - logptau_thresh
   }
 
