@@ -89,7 +89,7 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  is.fixed = c(TRUE, is.fixed[2:3]),
                                                  fix.params = c(0, fix.params[2:3]),
                                                  tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                                 optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                                 optim_method = ifelse(sum(is.fixed[2:3]) >= 1, "Brent", "Nelder-Mead"),
                                                  set.init.params = set.init.params,
                                                  select_zscore = select_zscore)
 
@@ -114,7 +114,7 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                  is.fixed = c(TRUE, is.fixed[2:3]),
                                                  fix.params = c(0, fix.params[2:3]),
                                                  tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                                 optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                                 optim_method = ifelse(sum(is.fixed[2:3]) >= 1, "Brent", "Nelder-Mead"),
                                                  set.init.params = set.init.params,
                                                  select_zscore = select_zscore)
   }
@@ -167,7 +167,7 @@ MetaMR_simplemodel <- function(sumstat_beta_list, sumstat_se_list, is_overlap = 
                                                      is.fixed = c(TRUE, is.fixed[2:3]),
                                                      fix.params = c(0, fix.params[2:3]),
                                                      tau_mu_log = tau_mu_log, tau_delta_log = tau_delta_log,
-                                                     optim_method = ifelse(sum(is.fixed) >= 2, "Brent", "Nelder-Mead"),
+                                                     optim_method = ifelse(sum(is.fixed[2:3]) >= 1, "Brent", "Nelder-Mead"),
                                                      set.init.params = set.init.params,
                                                      select_zscore = select_zscore)
     }
