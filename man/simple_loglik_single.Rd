@@ -42,7 +42,7 @@ simple_loglik_single(
 A log-likelihood for the summary statistics of a single variant given some parameters gamma, mu, tau
 }
 \description{
-The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming i.i.d. normal mu and delta. Now includes an option to specify whether variants were selected based on a Z-score threshold for the target exposure.
+The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming i.i.d. normal mu and delta. Includes a basic implementation of selection based on summary statistics for exposure associations in the target population. For more sophisticated selection methods, see selection_loglik_single.
 }
 \examples{
 simple_loglik_single(sumstat_beta = c(0,0,0), sumstat_se = c(1,1,1),

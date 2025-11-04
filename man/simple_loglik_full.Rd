@@ -42,7 +42,7 @@ simple_loglik_full(
 A log-likelihood for the summary statistics of a set of variants given some parameters gamma, mu, tau
 }
 \description{
-The marginal log-likelihood for the summary statistics of a list of variants under our meta-analysis model, assuming no selection, and i.i.d. normal mu and delta
+The marginal log-likelihood for the summary statistics of a list of variants under our meta-analysis model, assuming no selection, and i.i.d. normal mu and delta. Includes a basic implementation of selection based on summary statistics for exposure associations in the target population. For more sophisticated selection methods, see selection_loglik_full.
 }
 \examples{
 simple_loglik_full(sumstat_beta_list = list(c(0,0,0), c(0,0,0), c(0,0,0)),

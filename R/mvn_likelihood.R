@@ -1,6 +1,6 @@
 #' Log-likelihood function under simple model (single-variant)
 #'
-#' The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming i.i.d. normal mu and delta. Now includes an option to specify whether variants were selected based on a Z-score threshold for the target exposure.
+#' The marginal log-likelihood for the summary statistics of a single variant under our meta-analysis model, assuming i.i.d. normal mu and delta. Includes a basic implementation of selection based on summary statistics for exposure associations in the target population. For more sophisticated selection methods, see selection_loglik_single.
 #'
 #' @param gamma The exposure-outcome causal effect parameter
 #' @param tau_mu The variance of the normal distribution underlying mu. It should be log-transformed unless set to be exactly zero.
@@ -81,7 +81,7 @@ simple_loglik_single <- function(sumstat_beta, sumstat_se, gamma, is_overlap = F
 
 #' Log-likelihood function under simple model (multi-variant)
 #'
-#' The marginal log-likelihood for the summary statistics of a list of variants under our meta-analysis model, assuming no selection, and i.i.d. normal mu and delta
+#' The marginal log-likelihood for the summary statistics of a list of variants under our meta-analysis model, assuming no selection, and i.i.d. normal mu and delta. Includes a basic implementation of selection based on summary statistics for exposure associations in the target population. For more sophisticated selection methods, see selection_loglik_full.
 #'
 #' @param sumstat_beta_list a list of vectors of GWAS effect size estimates with length K+1: first, for the outcome in the target population, then the exposure in the target population, then the exposures across K-1 auxiliary populations. Each vector in the list represents summary statistics for one of many variants.
 #' @param sumstat_se_list a list of vectors of the standard errors for GWAS effect size estimates in sumstat_beta_list
