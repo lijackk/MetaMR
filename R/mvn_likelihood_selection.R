@@ -242,8 +242,15 @@ selection_loglik_full <- function(sumstat_beta_list,
       log_pselect <- log(resample_prob(resample_number, resample_seed, unt_tau_mu, unt_tau_delta, r_mat = r_mat_list[[1]][-1, -1], SE_vector = sumstat_se_list[[1]][-1], select_pthresh))
       return(unconditional_loglik - log_pselect*n)
     } else {
-      log_pselect <- log(numint_prob(unt_tau_mu, unt_tau_delta, r_mat = r_mat_list[[1]][-1, -1], SE_vector = sumstat_se_list[[1]][-1], select_pthresh))
-      return(unconditional_loglik - log_pselect*n)
+      if (select_method == "minp") {
+        log_pselect <- log(numint_prob(unt_tau_mu, unt_tau_delta, r_mat = r_mat_list[[1]][-1, -1], SE_vector = sumstat_se_list[[1]][-1], select_pthresh))
+        return(unconditional_loglik - log_pselect*n)
+      } else {#if not Fisher's method or minimum p, default to single-exposure
+        sumstat_se <- sumstat_se_list[[1]]
+        select_zscore <- abs(stats::qnorm(select_pthresh / 2))
+        log_pselect <- log(2 * stats::pnorm(abs(select_zscore) * sumstat_se[1 + single_exp_pop]/sqrt(unt_tau_mu + unt_tau_delta + sumstat_se[1 + single_exp_pop]^2), lower.tail = FALSE))
+        return(unconditional_loglik - log_pselect*n)
+      }
     }
   } else { #otherwise, we need to go the full way
     loglik_variants <- vector()

@@ -2,7 +2,7 @@
 % Please edit documentation in R/MetaMR.R
 \name{MetaMR_simplemodel}
 \alias{MetaMR_simplemodel}
-\title{MetaMR using a simple hierarchical model (NOT YET COMPLETE)}
+\title{MetaMR using a simple random-effects meta-analysis model}
 \usage{
 MetaMR_simplemodel(
   sumstat_beta_list,
@@ -42,7 +42,7 @@ MetaMR_simplemodel(
 a list that includes point estimates for the exposure-outcome causal effect \eqn{\gamma} and variance terms \eqn{\tau_{\mu}} and \eqn{\tau_{\delta}} estimated using maximum likelihood, the covariance matrix of these point estimates (calculated using the inverse of the Hessian), and the results of a likelihood ratio test that tests against null hypothesis \eqn{\gamma = 0} (including the test statistic and p-value)
 }
 \description{
-This function estimates an exposure-outcome causal effect, \eqn{\gamma}, in the target population, using exposure and outcome summary statistics in the target population as well as exposure summary statistics from \eqn{K - 1} auxiliary populations using a simple hierarchical model. This function inputs a list of GWAS effect size estimates across all \eqn{K+1} studies for a set of \eqn{n} variants selected as instrumental variables, a list of standard errors for these variants, and a user-specified residual correlation matrix reflecting sample overlap between studies, then maximizes a likelihood that models exposure summary statistics for each variant \eqn{j} under a random effects meta-analysis framework based on central values \eqn{\mu_j} and population-specific deviations \eqn{\delta_{kj}}, where \eqn{\mu_j} are i.i.d. normal with variance \eqn{\tau_{\mu}} and \eqn{\delta_{kj}} are also i.i.d. normal with variance \eqn{\tau_{\delta}}. Note that this function does NOT yet incorporate variant selection, potential horizontal pleiotropy in the outcome, or alternative distributions for \eqn{\mu} and \eqn{\delta} values.
+This function estimates an exposure-outcome causal effect, \eqn{\gamma}, in the target population, using exposure and outcome summary statistics in the target population as well as exposure summary statistics from \eqn{K - 1} auxiliary populations using a simple hierarchical model. This function inputs a list of GWAS effect size estimates across all \eqn{K+1} studies for a set of \eqn{n} variants selected as instrumental variables, a list of standard errors for these variants, and a user-specified residual correlation matrix reflecting sample overlap between studies, then maximizes a likelihood that models exposure summary statistics for each variant \eqn{j} under a random effects meta-analysis framework based on central values \eqn{\mu_j} and population-specific deviations \eqn{\delta_{kj}}, where \eqn{\mu_j} are i.i.d. normal with variance \eqn{\tau_{\mu}} and \eqn{\delta_{kj}} are also i.i.d. normal with variance \eqn{\tau_{\delta}}. Note that this function does NOT incorporate variant selection, potential horizontal pleiotropy in the outcome, or alternative distributions for \eqn{\mu} and \eqn{\delta} values.
 }
 \examples{
 SE_list <- rep(list(c(0.2, 0.1, 0.05, 0.05)), 50)
