@@ -2,8 +2,13 @@
 
 export(MetaMR_selectionmodel)
 export(MetaMR_simplemodel)
+export(metamrash_em_select)
+export(metamrash_loglik.full)
+export(metamrash_loglik.single)
 export(numint_prob)
+export(numint_prob_kernel)
 export(resample_prob)
+export(resample_prob_kernel)
 export(selection_loglik_full)
 export(selection_loglik_optimize)
 export(selection_loglik_single)
