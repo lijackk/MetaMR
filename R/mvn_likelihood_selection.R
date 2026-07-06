@@ -220,10 +220,10 @@ selection_loglik_full <- function(sumstat_beta_list,
 
   if (standardized) { #"standardized" simply means that every variant has the same set of standard errors, meaning that we only need to perform resampling/numerical integration once
 
-    unconditional_loglik <- simple_loglik_full(sumstat_beta = sumstat_beta_list,
-                                               sumstat_se = sumstat_se_list,
+    unconditional_loglik <- simple_loglik_full(sumstat_beta_list = sumstat_beta_list,
+                                               sumstat_se_list = sumstat_se_list,
                                                is_overlap = TRUE,
-                                               r_mat = r_mat_list,
+                                               r_mat_list = r_mat_list,
                                                gamma = gamma,
                                                tau_mu = tau_mu,
                                                tau_delta = tau_delta,
