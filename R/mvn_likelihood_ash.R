@@ -661,49 +661,51 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
       }
     }
 
-    if (select_flag) { #two steps of coordinate ascent
+    if (select_flag) { #coordinate ascent
       lps <- function(tau_mu, tau_delta) { #the sum of log probabilities of selection across all variants
         lpsj <- rep(0, J)
         for (j in 1:J) {
-          select_zscore <- abs(stats::qnorm(select_pthresh / 2))
-          if (select_method == "single_exposure") {
-            sumstat_se <- sumstat_se_list[[j]]
-            lpsj[j] <- log(2 * stats::pnorm(abs(select_zscore) * sumstat_se[1 + single_exp_pop]/sqrt(tau_mu + tau_delta + sumstat_se[1 + single_exp_pop]^2), lower.tail = FALSE))
-          }
-          if (select_method == "minp") {
-            lpsj[j] <- log(numint_prob_kernel(tau_mu, tau_delta, r_mat = r_mat_list[[j]][-1, -1], SE_vector = sumstat_se_list[[j]][-1], select_pthresh, kernel_matrix = kernel_matrix[-1, -1]))
-          }
-          if (select_method == "fisher") {
-            lpsj[j] <- log(resample_prob_kernel(mc_iter, random_seed, tau_mu, tau_delta, r_mat = r_mat_list[[j]][-1, -1], SE_vector = sumstat_se_list[[j]][-1], select_pthresh, kernel_matrix = kernel_matrix[-1, -1]))
+          if (standardized == TRUE & j > 1) {
+            lpsj[j] <- lpsj[1]
+          } else {
+            select_zscore <- abs(stats::qnorm(select_pthresh / 2))
+            if (select_method == "single_exposure") {
+              sumstat_se <- sumstat_se_list[[j]]
+              lpsj[j] <- log(2 * stats::pnorm(abs(select_zscore) * sumstat_se[1 + single_exp_pop]/sqrt(tau_mu + tau_delta + sumstat_se[1 + single_exp_pop]^2), lower.tail = FALSE))
+            }
+            if (select_method == "minp") {
+              lpsj[j] <- log(numint_prob_kernel(tau_mu, tau_delta, r_mat = r_mat_list[[j]][-1, -1], SE_vector = sumstat_se_list[[j]][-1], select_pthresh, kernel_matrix = kernel_matrix[-1, -1]))
+            }
+            if (select_method == "fisher") {
+              lpsj[j] <- log(resample_prob_kernel(mc_iter, random_seed, tau_mu, tau_delta, r_mat = r_mat_list[[j]][-1, -1], SE_vector = sumstat_se_list[[j]][-1], select_pthresh, kernel_matrix = kernel_matrix[-1, -1]))
+            }
           }
         }
         return(sum(lpsj))
       }
-      dQtau_mu <- function(x) { #step 1: tau_mu
-        lps_taumu <- function(x) {
-          lps(x, current_tau_delta)
-        }
-        term1 <- numerator_mu/(2 * x^2)
-        term2 <- J/(2*x)
-        term3 <- numDeriv::grad(lps_taumu, x)
 
-        return(-term1 + term2 + term3)
+      Qtau <- function(tau_mu, tau_delta) {
+        set.seed(random_seed)
+
+        tm_only <- numerator_mu/tau_mu + J * log(tau_mu)
+        td_only <- numerator_delta/tau_delta + J * (pops+1-mcount) * log(tau_delta)
+        lselect <- lps(tau_mu, tau_delta)
+
+        return((tm_only + td_only - lselect)[1,1])
       }
+
       if (is.na(fixed_tau_mu)) {
-        current_tau_mu <- stats::uniroot(dQtau_mu, interval = c(1e-16, 2 * current_tau_mu))$root
-      }
-      dQtau_delta <- function(x) {#step 2: tau_delta
-        lps_taudelta <- function(x) {
-          lps(current_tau_mu, x)
+        Qtau_mu <- function(tm) {
+          return(-Qtau(tm, current_tau_delta))
         }
-        term1 <- numerator_delta/(2 * x^2)
-        term2 <- J*(pops + 1)/(2*x)
-        term3 <- numDeriv::grad(lps_taudelta, x)
-
-        return(-term1 + term2 + term3)
+        current_tau_mu <- stats::optimize(Qtau_mu, interval = c(1e-16, max(current_tau_mu * 2, 1e-8)))$minimum
       }
-      if (is.na(fixed_tau_delta)) {
-        current_tau_delta <- stats::uniroot(dQtau_delta, interval = c(1e-16, 2 * current_tau_mu))$root
+
+      if (is.na(fixed_tau_mu)) {
+        Qtau_delta <- function(td) {
+          return(-Qtau(current_tau_mu, td))
+        }
+        current_tau_mu <- stats::optimize(Qtau_delta, interval = c(1e-16, max(current_tau_delta * 2, 1e-8)))$minimum
       }
     } else { #direct optimization
       if (is.na(fixed_tau_mu)) {
