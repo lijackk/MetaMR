@@ -572,9 +572,10 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
         if (sigma_c[comp] == 0) {
           Covzj_j[[comp]] <- solve(t(L0_0) %*% sigma_ej_inv[[j]] %*% L0_0 + Vzc0_inverse_list[[comp]])
           Ezj_j[[comp]] <- Covzj_j[[comp]] %*% (t(L0_0) %*% sigma_ej_inv[[j]] %*% sumstat_beta_list[[j]])
+        } else {
+          Covzj_j[[comp]] <- solve(t(L0) %*% sigma_ej_inv[[j]] %*% L0 + Vzc0_inverse_list[[comp]])
+          Ezj_j[[comp]] <- Covzj_j[[comp]] %*% (t(L0) %*% sigma_ej_inv[[j]] %*% sumstat_beta_list[[j]])
         }
-        Covzj_j[[comp]] <- solve(t(L0) %*% sigma_ej_inv[[j]] %*% L0 + Vzc0_inverse_list[[comp]])
-        Ezj_j[[comp]] <- Covzj_j[[comp]] %*% (t(L0) %*% sigma_ej_inv[[j]] %*% sumstat_beta_list[[j]])
       }
       Covzj[[j]] <- Covzj_j
       Ezj[[j]] <- Ezj_j
