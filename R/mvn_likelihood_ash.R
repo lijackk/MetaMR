@@ -555,12 +555,13 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
           Vzc0_inverse[1,1] <- 1/current_tau_mu
           Vzc0_inverse[2:(pops + 2 - mcount), 2:(pops + 2 - mcount)] <- 1/current_tau_delta * inv_kernel
           Vzc0_inverse_list[[comp]] <- Vzc0_inverse
+        } else {
+          Vzc0_inverse <- matrix(0, nrow = pops + 3 - mcount, ncol = pops + 3 - mcount)
+          Vzc0_inverse[1,1] <- 1/current_tau_mu
+          Vzc0_inverse[2:(pops + 2 - mcount), 2:(pops + 2 - mcount)] <- 1/current_tau_delta * inv_kernel
+          Vzc0_inverse[(pops + 3 - mcount), (pops + 3 - mcount)] <- 1/sigma_c[comp]
+          Vzc0_inverse_list[[comp]] <- Vzc0_inverse
         }
-        Vzc0_inverse <- matrix(0, nrow = pops + 3 - mcount, ncol = pops + 3 - mcount)
-        Vzc0_inverse[1,1] <- 1/current_tau_mu
-        Vzc0_inverse[2:(pops + 2 - mcount), 2:(pops + 2 - mcount)] <- 1/current_tau_delta * inv_kernel
-        Vzc0_inverse[(pops + 3 - mcount), (pops + 3 - mcount)] <- 1/sigma_c[comp]
-        Vzc0_inverse_list[[comp]] <- Vzc0_inverse
       }
     }
 
