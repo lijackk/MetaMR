@@ -661,7 +661,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
       }
     }
 
-    if (select_flag) { #coordinate ascent
+    if (select_flag) { #coordinate ascent on log-scale
       lps <- function(tau_mu, tau_delta) { #the sum of log probabilities of selection across all variants
         lpsj <- rep(0, J)
         for (j in 1:J) {
@@ -684,30 +684,36 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
         return(sum(lpsj))
       }
 
-      Qtau <- function(tau_mu, tau_delta) {
+      Qtau <- function(X) { #X = c(log(tm), log(td))
+        tau_mu <- exp(X[1])
+        tau_delta <- exp(X[2])
         set.seed(random_seed)
 
-        tm_only <- numerator_mu/tau_mu + J * log(tau_mu)
-        td_only <- numerator_delta/tau_delta + J * (pops+1-mcount) * log(tau_delta)
+        tm_only <- -1/2 * (numerator_mu/tau_mu + J * log(tau_mu))
+        td_only <- -1/2 * (numerator_delta/tau_delta + J * (pops+1-mcount) * log(tau_delta))
         lselect <- lps(tau_mu, tau_delta)
 
         return((tm_only + td_only - lselect)[1,1])
       }
 
-      #Coordinate ascent 1: optimizing tau_mu given tau_delta
+      #optimizing only tau_mu
       if (is.na(fixed_tau_mu)) {
         Qtau_mu <- function(tm) {
-          return(-Qtau(tm, current_tau_delta))
+          X <- c(tm, log(current_tau_delta))
+          return(-Qtau(X))
         }
-        current_tau_mu <- stats::optimize(Qtau_mu, interval = c(1e-16, max(current_tau_mu * 2, 1e-8)))$minimum
+        log_ctm <- stats::optimize(Qtau_mu, interval = c(-32, 8))$minimum
+        current_tau_mu <- exp(log_ctm)
       }
 
-      #Coordinate ascent 2: optimizing tau_delta given current_tau_mu
+      #optimizing only tau_delta
       if (is.na(fixed_tau_delta)) {
         Qtau_delta <- function(td) {
-          return(-Qtau(current_tau_mu, td))
+          X <- c(log(current_tau_mu), td)
+          return(-Qtau(X))
         }
-        current_tau_delta <- stats::optimize(Qtau_delta, interval = c(1e-16, max(current_tau_delta * 2, 1e-8)))$minimum
+        log_ctd <- stats::optimize(Qtau_delta, interval = c(-32, 8))$minimum
+        current_tau_delta <- exp(log_ctd)
       }
     } else { #direct optimization
       if (is.na(fixed_tau_mu)) {
