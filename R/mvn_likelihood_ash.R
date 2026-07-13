@@ -694,6 +694,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
         return((tm_only + td_only - lselect)[1,1])
       }
 
+      #Coordinate ascent 1: optimizing tau_mu given tau_delta
       if (is.na(fixed_tau_mu)) {
         Qtau_mu <- function(tm) {
           return(-Qtau(tm, current_tau_delta))
@@ -701,11 +702,12 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
         current_tau_mu <- stats::optimize(Qtau_mu, interval = c(1e-16, max(current_tau_mu * 2, 1e-8)))$minimum
       }
 
-      if (is.na(fixed_tau_mu)) {
+      #Coordinate ascent 2: optimizing tau_delta given current_tau_mu
+      if (is.na(fixed_tau_delta)) {
         Qtau_delta <- function(td) {
           return(-Qtau(current_tau_mu, td))
         }
-        current_tau_mu <- stats::optimize(Qtau_delta, interval = c(1e-16, max(current_tau_delta * 2, 1e-8)))$minimum
+        current_tau_delta <- stats::optimize(Qtau_delta, interval = c(1e-16, max(current_tau_delta * 2, 1e-8)))$minimum
       }
     } else { #direct optimization
       if (is.na(fixed_tau_mu)) {
