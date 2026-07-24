@@ -13,5 +13,4 @@ BugReports: https://github.com/lijackk/MetaMR/issues
 Imports: 
     matrixStats,
     mvtnorm,
-    numDeriv,
     stats
