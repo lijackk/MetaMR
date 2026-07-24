@@ -435,7 +435,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
     print("No exposure populations match, proceeding without exposure-swapping and kernel matrix pruning")
   } else {
     #some checks about matching_exp_pop
-    if (class(matching_exp_pop) != "numeric") {
+    if (is.numeric(matching_exp_pop)) {
       stop("matching_exp_pop is not numeric!")
     }
 
@@ -535,6 +535,9 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
 
     if (identical(matching_exp_pop, "none")) {
       for (comp in 1:C) {
+        if (current_ash_pi[comp] == 0) {
+          next
+        }
         if (sigma_c[comp] == 0) {
           Vzc0_inverse <- matrix(0, nrow = pops + 2, ncol = pops + 2)
           Vzc0_inverse[1,1] <- 1/current_tau_mu
@@ -550,6 +553,9 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
       }
     } else {
       for (comp in 1:C) {
+        if (current_ash_pi[comp] == 0) {
+          next
+        }
         if (sigma_c[comp] == 0) {
           Vzc0_inverse <- matrix(0, nrow = pops + 2 - mcount, ncol = pops + 2 - mcount)
           Vzc0_inverse[1,1] <- 1/current_tau_mu
@@ -569,6 +575,9 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
       Covzj_j <- list()
       Ezj_j <- list()
       for (comp in 1:C) {
+        if (current_ash_pi[comp] == 0) {
+          next
+        }
         if (sigma_c[comp] == 0) {
           Covzj_j[[comp]] <- solve(t(L0_0) %*% sigma_ej_inv[[j]] %*% L0_0 + Vzc0_inverse_list[[comp]])
           Ezj_j[[comp]] <- Covzj_j[[comp]] %*% (t(L0_0) %*% sigma_ej_inv[[j]] %*% sumstat_beta_list[[j]])
@@ -596,6 +605,9 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
       Ajc <- 0
       for (j in 1:J) {
         for (comp in 1:C) {
+          if (current_ash_pi[comp] == 0) {
+            next
+          }
           s_mat_j <- sigma_ej_inv[[j]]
           mu_vec_jc <- Ezj[[j]][[comp]]
           sigma_mat_jc <- Covzj[[j]][[comp]]
@@ -651,6 +663,9 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
 
       for (j in 1:J) {
         for (comp in 1:C) {
+          if (current_ash_pi[comp] == 0) {
+            next
+          }
           mu_vec_jc <- Ezj[[j]][[comp]]
           sigma_mat_jc <- Covzj[[j]][[comp]]
           mu_summand <- mu_vec_jc[1]^2 + sigma_mat_jc[1,1]
