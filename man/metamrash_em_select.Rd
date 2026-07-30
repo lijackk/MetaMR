@@ -27,7 +27,9 @@ metamrash_em_select(
   em_iter = 100,
   em_tol = 1e-05,
   standardized = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  ashpi_zero_thresh = 0.001,
+  verbose_iteration = 50
 )
 }
 \arguments{
@@ -73,7 +75,11 @@ metamrash_em_select(
 
 \item{standardized}{A boolean indicating whether summary statistics are standardized; i.e. whether they have the same set of standard errors. If they do, we only need to calculate the probability of selection once across all J variants.}
 
-\item{verbose}{If true, prints out the current values of each parameter at each iteration, as well as the observed data log-likelihood.}
+\item{verbose}{If true, prints out the current values of each parameter, as well as the observed data log-likelihood every user-defined number of iterations (defined in verbose_iteration).}
+
+\item{ashpi_zero_thresh}{The threshold at which a mixture parameter in the ash model is automatically set to zero. By default, set to 0.001.}
+
+\item{verbose_iteration}{The interval at which to print out parameter updates and iterations. By default, set to 50.}
 }
 \value{
 A list containing the final parameter values estimated by the EM algorithm, as well as successive iterations. params = the final quantities for gamma/tau_mu/tau_delta/ash_pi, final_loglik = the final observed data log-likelihood at params, params_list = a list of values that each parameter took across successive iterations, loglik_vector = the observed data log-likelihood across all iterations.

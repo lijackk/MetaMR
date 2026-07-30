@@ -321,7 +321,9 @@ metamrash_loglik.full <- function(sumstat_beta_list, sumstat_se_list, is_overlap
 #' @param em_iter The maximum number of iterations to perform for the EM algorithm.
 #' @param em_tol The tolerance threshold for stopping the EM algorithm early. If the Euclidean distance between successive EM iterations follows below this threshold, the algorithm ends early.
 #' @param standardized A boolean indicating whether summary statistics are standardized; i.e. whether they have the same set of standard errors. If they do, we only need to calculate the probability of selection once across all J variants.
-#' @param verbose If true, prints out the current values of each parameter at each iteration, as well as the observed data log-likelihood.
+#' @param verbose If true, prints out the current values of each parameter, as well as the observed data log-likelihood every user-defined number of iterations (defined in verbose_iteration).
+#' @param ashpi_zero_thresh The threshold at which a mixture parameter in the ash model is automatically set to zero. By default, set to 0.001.
+#' @param verbose_iteration The interval at which to print out parameter updates and iterations. By default, set to 50.
 #'
 #' @returns A list containing the final parameter values estimated by the EM algorithm, as well as successive iterations. params = the final quantities for gamma/tau_mu/tau_delta/ash_pi, final_loglik = the final observed data log-likelihood at params, params_list = a list of values that each parameter took across successive iterations, loglik_vector = the observed data log-likelihood across all iterations.
 #' @export
@@ -332,7 +334,8 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
                                 matching_exp_pop = "none", single_exp_pop = 1, select_pthresh = 0.05,
                                 random_seed = 2026, mc_iter = 250,
                                 fixed_gamma = NA, fixed_tau_mu = NA, fixed_tau_delta = NA, fixed_ash_pi = NA,
-                                em_iter = 100, em_tol = 1e-5, standardized = FALSE, verbose = FALSE) {
+                                em_iter = 100, em_tol = 1e-5, standardized = FALSE, verbose = FALSE,
+                                ashpi_zero_thresh = 1e-3, verbose_iteration = 50) {
   #=Basic initial checks=
   if (length(sumstat_beta_list) != length(sumstat_se_list)) {
     stop("Summary statistic effect size estimates and standard errors imply differing numbers of variants!")
@@ -594,7 +597,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
     if (identical(fixed_ash_pi, NA)) {
       current_ash_pi <- colSums(pcj)/J
       #as a slight time-save, we can get rid of components that are clearly shrinking to zero
-      current_ash_pi <- ifelse(current_ash_pi < 1e-4, 0, current_ash_pi)
+      current_ash_pi <- ifelse(current_ash_pi < ashpi_zero_thresh, 0, current_ash_pi)
       current_ash_pi <- current_ash_pi/sum(current_ash_pi)
     }
 
@@ -748,7 +751,9 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
                                             random_seed = random_seed, mc_iter = mc_iter, standardized = standardized)
 
     if (verbose) {
-      print(paste("At iteration", iter, "parameter vectors are now at", paste(round(c(current_gamma, current_tau_mu, current_tau_delta, current_ash_pi), 6), collapse = "/"), "with log-likelihood", current_loglik))
+      if (iter %% verbose_iteration == 0) {
+        print(paste("At iteration", iter, "parameter vectors are now at", paste(round(c(current_gamma, current_tau_mu, current_tau_delta, current_ash_pi), 6), collapse = "/"), "with log-likelihood", current_loglik))
+      }
     }
 
     param_list[[iter]] <- c(current_gamma, current_tau_mu, current_tau_delta, current_ash_pi)
