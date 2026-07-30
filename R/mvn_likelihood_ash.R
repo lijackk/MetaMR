@@ -438,7 +438,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
     print("No exposure populations match, proceeding without exposure-swapping and kernel matrix pruning")
   } else {
     #some checks about matching_exp_pop
-    if (is.numeric(matching_exp_pop)) {
+    if (!is.numeric(matching_exp_pop)) {
       stop("matching_exp_pop is not numeric!")
     }
 
