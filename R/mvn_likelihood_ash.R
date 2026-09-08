@@ -317,13 +317,17 @@ metamrash_loglik.full <- function(sumstat_beta_list, sumstat_se_list, is_overlap
 #' @param fixed_gamma A single number indicating the value that gamma should be fixed at through the EM algorithm. Set to NA by default to indicate that it should not be fixed.
 #' @param fixed_tau_mu A single number indicating the value that tau_mu should be fixed at through the EM algorithm. Set to NA by default to indicate that it should not be fixed.
 #' @param fixed_tau_delta A single number indicating the value that tau_delta should be fixed at through the EM algorithm. Set to NA by default to indicate that it should not be fixed.
-#' @param fixed_ash_pi A vector of length c indicating the values that ash_pi should be fixed at. Set to NA by default to indicate that it should not be fixed.
+#' @param fixed_ash_pi A vector of length C indicating the values that ash_pi should be fixed at. Set to NA by default to indicate that it should not be fixed.
 #' @param em_iter The maximum number of iterations to perform for the EM algorithm.
 #' @param em_tol The tolerance threshold for stopping the EM algorithm early. If the Euclidean distance between successive EM iterations follows below this threshold, the algorithm ends early.
 #' @param standardized A boolean indicating whether summary statistics are standardized; i.e. whether they have the same set of standard errors. If they do, we only need to calculate the probability of selection once across all J variants.
 #' @param verbose If true, prints out the current values of each parameter, as well as the observed data log-likelihood every user-defined number of iterations (defined in verbose_iteration).
 #' @param ashpi_zero_thresh The threshold at which a mixture parameter in the ash model is automatically set to zero. By default, set to 0.001.
 #' @param verbose_iteration The interval at which to print out parameter updates and iterations. By default, set to 50.
+#' @param init_gamma A single number indicating if gamma should be initialized at a specific value. Set to NA by default, which automatically finds a plausible value for initialization.
+#' @param init_tau_mu A single number indicating if tau_mu should be initialized at a specific value. Set to NA by default, which automatically finds a plausible value for initialization.
+#' @param init_tau_delta A single number indicating if tau_delta should be initialized at a specific value. Set to NA by default, which automatically finds a plausible value for initialization.
+#' @param init_ash_pi A vector with length C indicating if ash_pi mixture components should be initialized at a specific value. Set to NA by default, which automatically initializes these values at (C:1)/sum(C:1).
 #'
 #' @returns A list containing the final parameter values estimated by the EM algorithm, as well as successive iterations. params = the final quantities for gamma/tau_mu/tau_delta/ash_pi, final_loglik = the final observed data log-likelihood at params, params_list = a list of values that each parameter took across successive iterations, loglik_vector = the observed data log-likelihood across all iterations.
 #' @export
@@ -334,6 +338,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
                                 matching_exp_pop = "none", single_exp_pop = 1, select_pthresh = 0.05,
                                 random_seed = 2026, mc_iter = 250,
                                 fixed_gamma = NA, fixed_tau_mu = NA, fixed_tau_delta = NA, fixed_ash_pi = NA,
+                                init_gamma = NA, init_tau_mu = NA, init_tau_delta = NA, init_ash_pi = NA,
                                 em_iter = 100, em_tol = 1e-5, standardized = FALSE, verbose = FALSE,
                                 ashpi_zero_thresh = 1e-3, verbose_iteration = 50) {
   #=Basic initial checks=
@@ -377,12 +382,16 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
     init_tau_delta <- 0
   } else {
     if (identical(unname(kernel_matrix[-1, -1]), diag(pops))) { #if the kernel matrix for exposures is just diag(pops), we can't run regression to get our tau_mu and tau_delta estimates
-      init_tau_mu <- unname(mean(c(beta_x_vars[upper.tri(beta_x_vars, diag = FALSE)], beta_x_vars[lower.tri(beta_x_vars, diag = FALSE)])))
-      if (init_tau_mu <= 0) {init_tau_mu <- 1e-16}
+      if (identical(init_tau_mu, NA)) {
+        init_tau_mu <- unname(mean(c(beta_x_vars[upper.tri(beta_x_vars, diag = FALSE)], beta_x_vars[lower.tri(beta_x_vars, diag = FALSE)])))
+      }
+      if (length(init_tau_mu) > 1 | init_tau_mu[1] <= 0 | !is.numeric(init_tau_mu[1])) {init_tau_mu <- 1e-16}
       se_x_squared <- se_matrix[1,-1]^2
       tau_delta_estimates <- unname(diag(beta_x_vars) - init_tau_mu - se_x_squared)
-      init_tau_delta <- mean(tau_delta_estimates)
-      if (init_tau_delta <= 0) {init_tau_delta <- 1e-16}
+      if (identical(init_tau_delta, NA)) {
+        init_tau_delta <- mean(tau_delta_estimates)
+      }
+      if (length(init_tau_delta) > 1 | init_tau_delta[1] <= 0 | !is.numeric(init_tau_delta)[1]) {init_tau_delta <- 1e-16}
     } else {
       #tau_mu and tau_delta are estimated using linear regression of exposure covariance terms against kernel matrix terms
       reg.y <- as.vector(beta_x_vars[upper.tri(beta_x_vars, diag = FALSE)])
@@ -390,28 +399,37 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
 
       covar_vs_kernel <- unname(stats::lm(reg.y ~ reg.x)$coefficients)
 
-      init_tau_mu <- covar_vs_kernel[1]
-      init_tau_delta <- covar_vs_kernel[2]
+      if (identical(init_tau_mu, NA)) {
+        init_tau_mu <- covar_vs_kernel[1]
+      }
+      if (identical(init_tau_mu, NA)) {
+        init_tau_delta <- covar_vs_kernel[2]
+      }
 
-      if (init_tau_mu <= 0) {init_tau_mu <- 1e-16}
-      if (init_tau_delta <= 0) {init_tau_delta <- 1e-16}
+      if (length(init_tau_mu) > 1 | init_tau_mu[1] <= 0 | !is.numeric(init_tau_delta[1])) {init_tau_mu <- 1e-16}
+      if (length(init_tau_delta) > 1 | init_tau_delta[1] <= 0 | !is.numeric(init_tau_delta[1])) {init_tau_delta <- 1e-16}
     }
   }
 
   if (!is.na(fixed_tau_mu)) {
     init_tau_mu <- fixed_tau_mu
   }
+
   if (!is.na(fixed_tau_delta)) {
     init_tau_delta <- fixed_tau_delta
   }
 
   #Initial ash_pi: mixture probabilities
-  if (identical(fixed_ash_pi, NA)) {
-    C <- length(sigma_c)
-    init_ash_pi <- (C:1)/sum(1:C)
+  C <- length(sigma_c)
+  init_ash_pi[which(is.na(init_ash_pi))] <- 1e-16
+  if (length(init_ash_pi) == C & is.numeric(init_ash_pi) & !any(init_ash_pi <= 0)) {
+    init_ash_pi <- init_ash_pi/sum(init_ash_pi)
   } else {
-    C <- length(sigma_c)
-    init_ash_pi <- fixed_ash_pi
+    if (identical(fixed_ash_pi, NA) | length(fixed_ash_pi) != C) {
+      init_ash_pi <- (C:1)/sum(1:C)
+    } else {
+      init_ash_pi <- fixed_ash_pi
+    }
   }
 
   starting_loglik <- metamrash_loglik.full(sumstat_beta_list, sumstat_se_list, is_overlap = is_overlap, r_mat_list = r_mat_list, kernel_matrix = kernel_matrix,
@@ -759,7 +777,8 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
     param_list[[iter]] <- c(current_gamma, current_tau_mu, current_tau_delta, current_ash_pi)
     loglik_vector[iter] <- current_loglik
     if (iter > 1) {
-      if (sum((param_list[[iter]] - param_list[[iter - 1]])^2) < em_tol) {print("Tolerance of EM algorithm reached, terminating early!"); break}
+      #if (sum((param_list[[iter]] - param_list[[iter - 1]])^2) < em_tol) {print("Tolerance of EM algorithm reached, terminating early!"); break}
+      if (abs(loglik_vector[iter] - loglik_vector[iter - 1])/abs(loglik_vector[iter - 1]) < em_tol) {print("Tolerance of EM algorithm reached, terminating early!"); break}
     }
   }
 

@@ -24,6 +24,10 @@ metamrash_em_select(
   fixed_tau_mu = NA,
   fixed_tau_delta = NA,
   fixed_ash_pi = NA,
+  init_gamma = NA,
+  init_tau_mu = NA,
+  init_tau_delta = NA,
+  init_ash_pi = NA,
   em_iter = 100,
   em_tol = 1e-05,
   standardized = FALSE,
@@ -67,7 +71,15 @@ metamrash_em_select(
 
 \item{fixed_tau_delta}{A single number indicating the value that tau_delta should be fixed at through the EM algorithm. Set to NA by default to indicate that it should not be fixed.}
 
-\item{fixed_ash_pi}{A vector of length c indicating the values that ash_pi should be fixed at. Set to NA by default to indicate that it should not be fixed.}
+\item{fixed_ash_pi}{A vector of length C indicating the values that ash_pi should be fixed at. Set to NA by default to indicate that it should not be fixed.}
+
+\item{init_gamma}{A single number indicating if gamma should be initialized at a specific value. Set to NA by default, which automatically finds a plausible value for initialization.}
+
+\item{init_tau_mu}{A single number indicating if tau_mu should be initialized at a specific value. Set to NA by default, which automatically finds a plausible value for initialization.}
+
+\item{init_tau_delta}{A single number indicating if tau_delta should be initialized at a specific value. Set to NA by default, which automatically finds a plausible value for initialization.}
+
+\item{init_ash_pi}{A vector with length C indicating if ash_pi mixture components should be initialized at a specific value. Set to NA by default, which automatically initializes these values at (C:1)/sum(C:1).}
 
 \item{em_iter}{The maximum number of iterations to perform for the EM algorithm.}
 
