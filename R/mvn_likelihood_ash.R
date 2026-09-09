@@ -402,7 +402,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
       if (identical(init_tau_mu, NA)) {
         init_tau_mu <- covar_vs_kernel[1]
       }
-      if (identical(init_tau_mu, NA)) {
+      if (identical(init_tau_delta, NA)) {
         init_tau_delta <- covar_vs_kernel[2]
       }
 
