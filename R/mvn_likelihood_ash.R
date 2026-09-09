@@ -406,7 +406,7 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
         init_tau_delta <- covar_vs_kernel[2]
       }
 
-      if (length(init_tau_mu) > 1 | init_tau_mu[1] <= 0 | !is.numeric(init_tau_delta[1])) {init_tau_mu <- 1e-16}
+      if (length(init_tau_mu) > 1 | init_tau_mu[1] <= 0 | !is.numeric(init_tau_mu[1])) {init_tau_mu <- 1e-16}
       if (length(init_tau_delta) > 1 | init_tau_delta[1] <= 0 | !is.numeric(init_tau_delta[1])) {init_tau_delta <- 1e-16}
     }
   }
