@@ -369,10 +369,15 @@ metamrash_em_select <- function(sumstat_beta_list, sumstat_se_list,
   se_matrix <- matrix(unlist(sumstat_se_list), nrow = length(sumstat_beta_list), byrow = TRUE)
 
   #gamma = simple IVW regression of outcome/exposure from the closest population, or fixed at zero
-  if (is.na(fixed_gamma)) {
-    init_gamma <- unname(stats::lm(beta_matrix[,1] ~ beta_matrix[,closest_exposure_pop + 1] - 1, weights = 1/se_matrix[,closest_exposure_pop + 1]^2)$coefficients)
+  if (identical(init_gamma, NA)) {
+    if (is.na(fixed_gamma)) {
+      init_gamma <- unname(stats::lm(beta_matrix[,1] ~ beta_matrix[,closest_exposure_pop + 1] - 1, weights = 1/se_matrix[,closest_exposure_pop + 1]^2)$coefficients)
+    } else {
+      init_gamma <- fixed_gamma
+    }
   } else {
-    init_gamma <- fixed_gamma
+    init_gamma <- as.numeric(init_gamma[1])
+    if (is.na(init_gamma)) {init_gamma <- 0}
   }
 
   #tau_mu and tau_delta = estimated from the covariance matrix of exposure summary statistics
